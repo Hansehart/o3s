@@ -1,0 +1,22 @@
+services:
+  O3S:
+    image: mcr.microsoft.com/devcontainers/universal
+    container_name: O3S
+    env_file: .env
+    volumes:
+      # Host mount for dynamic changes on O3S
+      - ../:/home/codespace/O3S
+      # Volume mount for project to work with across sessions
+      - O3S:/home/codespace/projects
+    init: true
+    # Limit ressource usage
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT}
+          cpus: ${CPU_LIMIT}
+    # Keeps container runnning
+    command: sleep infinity
+
+volumes:
+  O3S:

@@ -1,25 +1,14 @@
 {
-    // Display name of your DevContainer
+    // Name for the dev container
     "name": "O3S",
-    // Base development image (universal, multi-language environment)
-    "image": "mcr.microsoft.com/devcontainers/universal",
-    // Host mount for O3S for dynamic environment
-    "workspaceMount": "source=${localWorkspaceFolder},target=/home/codespace/O3S,type=bind",
-    // Set the working directory inside the container to the O3S folder
+    // Location of compose file
+    "dockerComposeFile": "docker-compose.yml",
+    // Which container from compose should be entered
+    "service": "O3S",
+    // Which folder is the default inside the dev container
     "workspaceFolder": "/home/codespace/O3S",
-    // Create a persistent Docker volume at ~/projects for isolated projects that can be added as work dir
-    "mounts": [
-        "source=o3s,target=/home/codespace/projects,type=volume"
-    ],
-    // Script configuring developer settings
-    "postCreateCommand": ".devcontainer/init.sh",
-    // Use a tiny init system for proper process handling
-    "init": true,
-    // Give the DevContainer a fixed Docker container name and env vars
-    "runArgs": [
-        "--name",
-        "O3S",
-        "--env-file",
-        ".devcontainer/.env"
-    ]
+    // Intialize .env variables (happens on docker host)
+    "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
+    // Execute start up script (inside dev container)
+    "postCreateCommand": ".devcontainer/init.sh"
 }
