@@ -1,3 +1,6 @@
+# Stack name
+name: O3S
+# Apps deployed by stack
 services:
   O3S:
     image: mcr.microsoft.com/devcontainers/universal
