@@ -10,5 +10,16 @@
     // Intialize .env variables (happens on docker host)
     "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
     // Execute start up script (inside dev container)
-    "postCreateCommand": ".devcontainer/init.sh"
+    "postCreateCommand": ".devcontainer/init.sh",
+    // VSCode settings
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Manage container applications
+                "ms-azuretools.vscode-containers",
+                // Data viewer
+                "ms-toolsai.datawrangler"
+            ]
+        }
+    }
 }

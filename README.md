@@ -4,6 +4,7 @@ A simple, all-in-one dev container for developing open-source projects with quic
 ## Getting Started
 
 ### Prerequisites
+- Install [Docker Engine/Desktop](https://docs.docker.com/engine/install/)
 - Install [Visual Studio Code](https://code.visualstudio.com/download)
 
 ### Setup
@@ -24,6 +25,14 @@ A simple, all-in-one dev container for developing open-source projects with quic
    - Your projects should be stored in `/home/codespace/projects` inside the container
    - Press `Ctrl+Shift+P` and use "File: Open Folder" to navigate to `/home/codespace/projects`
    - Happy coding!
+
+## Included Extensions
+
+| Name | Tag | Purpose |
+|------|-----|---------|
+| Containers | `ms-azuretools.vscode-containers` | Container orchestration |
+| Data Wrangler | `ms-toolsai.datawrangler` | Data viewing and manipulation |
+| GitHub | `github.vscode-pull-request-github` | Manage git workflows without leaving our IDE |
 
 ## ⚠️ WARNING: Data Persistence
 
