@@ -15,12 +15,14 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                // Manage container applications
+                // Container Tools
                 "ms-azuretools.vscode-containers",
                 // Data viewer
                 "ms-toolsai.datawrangler",
                 // Jupyter notebooks
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                // Python
+                "ms-python.python"
             ]
         }
     }
