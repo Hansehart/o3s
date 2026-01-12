@@ -33,6 +33,8 @@ A simple, all-in-one dev container for developing open-source projects with quic
 | Containers | `ms-azuretools.vscode-containers` | Container orchestration |
 | Data Wrangler | `ms-toolsai.datawrangler` | Data viewing and manipulation |
 | GitHub | `github.vscode-pull-request-github` | Manage git workflows without leaving our IDE |
+| Jupyter | `ms-toolsai.jupyter` | Interactive coding notebooks |
+
 
 ## ⚠️ WARNING: Data Persistence
 
