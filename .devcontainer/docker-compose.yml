@@ -1,17 +1,16 @@
 # Stack name
-name: O3S-Stack
+name: o3s
 # Apps deployed by stack
 services:
-  O3S:
+  o3s:
     image: mcr.microsoft.com/devcontainers/universal
-    container_name: O3S
+    container_name: o3s
     env_file: .env
     volumes:
-      # Host mount for dynamic changes on O3S
-      - ../:/home/codespace/O3S
+      # Host mount for dynamic changes
+      - ../:/home/codespace/o3s
       # Volume mount for project to work with across sessions
-      - O3S:/home/codespace/projects
-    init: true
+      - o3s-data:/home/codespace/projects
     # Limit ressource usage
     deploy:
       resources:
@@ -20,7 +19,13 @@ services:
           cpus: ${CPU_LIMIT}
     # Keeps container runnning
     command: sleep infinity
+    networks:
+      - o3s
+
+networks:
+  o3s:
+    name: o3s
 
 volumes:
-  O3S:
-    name: O3S
+  o3s-data:
+    name: o3s-data

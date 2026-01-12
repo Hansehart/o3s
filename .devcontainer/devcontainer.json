@@ -1,16 +1,21 @@
 {
     // Name for the dev container
-    "name": "O3S",
+    "name": "o3s",
+    // Deal with zombie processes
+    "init": true,
+
     // Location of compose file
     "dockerComposeFile": "docker-compose.yml",
     // Which container from compose should be entered
-    "service": "O3S",
+    "service": "o3s",
+
     // Which folder is the default inside the dev container
-    "workspaceFolder": "/home/codespace/O3S",
+    "workspaceFolder": "/home/codespace/o3s",
     // Intialize .env variables (happens on docker host)
-    "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
+    "initializeCommand": "cp --update .devcontainer/.env.template .devcontainer/.env",
     // Execute start up script (inside dev container)
     "postCreateCommand": ".devcontainer/init.sh",
+
     // VSCode settings
     "customizations": {
         "vscode": {
