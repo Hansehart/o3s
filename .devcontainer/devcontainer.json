@@ -28,6 +28,8 @@
                 "google.colab",
                 // Jupyter notebooks (Local kernel)
                 "ms-toolsai.jupyter",
+                // LaTeX editing and compilation
+                "james-yu.latex-workshop",
                 // Python
                 "ms-python.python"
             ]
