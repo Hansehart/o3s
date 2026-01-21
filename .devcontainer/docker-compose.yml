@@ -5,10 +5,14 @@ services:
   o3s:
     image: mcr.microsoft.com/devcontainers/universal
     container_name: o3s
+    environment:
+      - CLAUDE_CONFIG_DIR=/home/codespace/config
     env_file: .env
     volumes:
       # Host mount for dynamic changes
       - ../:/home/codespace/o3s
+      # Configuration for tools
+      - o3s-config:/home/codespace/config
       # Volume mount for project to work with across sessions
       - o3s-data:/home/codespace/projects
     # Limit ressource usage
@@ -27,5 +31,7 @@ networks:
     name: o3s
 
 volumes:
+  o3s-config:
+    name: o3s-config
   o3s-data:
     name: o3s-data
