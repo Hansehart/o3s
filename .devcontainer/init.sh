@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Fix permissions for the projects volume
-sudo chown -R codespace:codespace /home/codespace/projects
+# Fix permissions for the host mounts
+sudo chown -R codespace:codespace /home/codespace
 
 # Install TexLive for LaTeX compilation
-sudo apt-get update && sudo apt-get install -y texlive latexmk
+sudo apt-get update && sudo apt-get install -y texlive-latex-extra latexmk
 
 # Install Claude CLI
 curl -fsSL https://claude.ai/install.sh | bash
