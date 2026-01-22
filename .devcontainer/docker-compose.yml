@@ -3,7 +3,10 @@ name: o3s
 # Apps deployed by stack
 services:
   o3s:
-    image: mcr.microsoft.com/devcontainers/universal
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: o3s:latest
     container_name: o3s
     environment:
       - CLAUDE_CONFIG_DIR=/home/codespace/config
