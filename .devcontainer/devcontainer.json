@@ -9,12 +9,19 @@
     // Which container from compose should be entered
     "service": "o3s",
 
+    // Non-root user VS Code connects as (firewall script still runs via sudo)
+    "remoteUser": "codespace",
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/codespace/o3s",
-    // Intialize .env variables (happens on docker host)
-    "initializeCommand": "cp --update .devcontainer/.env.template .devcontainer/.env",
+
+    // Intialize .env variables (happens on docker host, only if .env does not exist yet)
+    "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
     // Execute start up script (inside dev container)
     "postCreateCommand": ".devcontainer/init.sh",
+    // Set up firewall on every container start (before VS Code connects)
+    "postStartCommand": "sudo /usr/local/bin/firewall.sh",
+    // More security due to waiting for firewall to finish
+    // "waitFor": "postStartCommand",
 
     // VSCode settings
     "customizations": {
@@ -24,6 +31,8 @@
                 "ms-azuretools.vscode-containers",
                 // Data viewer
                 "ms-toolsai.datawrangler",
+                // GitHub Pull Requests and Issues
+                "github.vscode-pull-request-github",
                 // Google Colab (Remote kernel with GPU)
                 "google.colab",
                 // Jupyter notebooks (Local kernel)

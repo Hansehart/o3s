@@ -32,7 +32,8 @@ A simple, all-in-one dev container for developing open-source projects with quic
 |------|-----|---------|
 | Containers | `ms-azuretools.vscode-containers` | Container orchestration |
 | Data Wrangler | `ms-toolsai.datawrangler` | Data viewing and manipulation |
-| GitHub | `github.vscode-pull-request-github` | Manage git workflows without leaving our IDE |
+| GitHub | `github.vscode-pull-request-github` | Manage PRs and issues without leaving the IDE |
+| Google Colab | `google.colab` | Remote notebook execution with GPU support |
 | Jupyter | `ms-toolsai.jupyter` | Interactive coding notebooks |
 | LaTeX Workshop | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
 | Python | `ms-python.python` | Python language support and debugging |

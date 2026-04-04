@@ -24,6 +24,10 @@ services:
         limits:
           memory: ${MEMORY_LIMIT}
           cpus: ${CPU_LIMIT}
+    # Required for iptables/ipset firewall management
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     # Keeps container runnning
     command: sleep infinity
     networks:
