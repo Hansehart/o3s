@@ -13,6 +13,7 @@ iptables -t nat -X
 iptables -t mangle -F
 iptables -t mangle -X
 ipset destroy allowed-domains 2>/dev/null || true
+ipset destroy github-git 2>/dev/null || true
 
 # 2. Selectively restore ONLY internal Docker DNS resolution
 if [ -n "$DOCKER_DNS_RULES" ]; then
@@ -32,8 +33,9 @@ iptables -A INPUT  -p udp -s 127.0.0.11 --sport 53 -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
-# Create ipset with CIDR support
+# Create ipsets with CIDR support
 ipset create allowed-domains hash:net
+ipset create github-git hash:net
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
 echo "Fetching GitHub IP ranges..."
@@ -43,12 +45,12 @@ if [ -z "$gh_ranges" ]; then
     exit 1
 fi
 
-if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
+if ! echo "$gh_ranges" | jq -e '.api and .git' >/dev/null; then
     echo "ERROR: GitHub API response missing required fields"
     exit 1
 fi
 
-echo "Processing GitHub IPs..."
+echo "Processing GitHub api+git IPs (HTTPS)..."
 while read -r cidr; do
     if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
         echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
@@ -56,7 +58,17 @@ while read -r cidr; do
     fi
     echo "Adding GitHub range $cidr"
     ipset add allowed-domains "$cidr"
-done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+done < <(echo "$gh_ranges" | jq -r '(.api + .git)[]' | aggregate -q)
+
+echo "Processing GitHub git IPs (SSH)..."
+while read -r cidr; do
+    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+        echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
+        exit 1
+    fi
+    echo "Adding GitHub git range $cidr"
+    ipset add github-git "$cidr"
+done < <(echo "$gh_ranges" | jq -r '.git[]' | aggregate -q)
 
 # Resolve and add other allowed domains
 for domain in \
@@ -108,6 +120,8 @@ iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Then allow only specific outbound traffic to allowed domains (HTTPS only)
 iptables -A OUTPUT -p tcp -m set --match-set allowed-domains dst --dport 443 -j ACCEPT
+# Allow SSH only to GitHub git ranges
+iptables -A OUTPUT -p tcp -m set --match-set github-git dst --dport 22 -j ACCEPT
 
 # Explicitly REJECT all other outbound traffic for immediate feedback
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
