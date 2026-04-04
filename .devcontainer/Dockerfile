@@ -22,8 +22,9 @@ RUN apt-get update && apt-get install -y \
 # Firewall script (run at container start via postStartCommand)
 COPY firewall.sh /usr/local/bin/firewall.sh
 RUN chmod 755 /usr/local/bin/firewall.sh && \
-  # Restrict passwordless sudo to firewall script only (replaces blanket NOPASSWD:ALL from base image)
-  sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/bin\/firewall.sh/' /etc/sudoers.d/codespace
+  # Restrict passwordless sudo to docker init and firewall script only (replaces blanket NOPASSWD:ALL from base image)
+  sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/bin\/firewall.sh/' /etc/sudoers.d/codespace
+
 
 # Switch user
 USER codespace

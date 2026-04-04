@@ -18,8 +18,8 @@
     "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
     // Execute start up script (inside dev container)
     "postCreateCommand": ".devcontainer/init.sh",
-    // Set up firewall on every container start (before VS Code connects)
-    "postStartCommand": "sudo /usr/local/bin/firewall.sh",
+    // Start docker daemon and sett up firewall on every container start (before VS Code connects)
+    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.sh .devcontainer/.env",
     // More security due to waiting for firewall to finish
     // "waitFor": "postStartCommand",
 
