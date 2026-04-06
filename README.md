@@ -32,7 +32,7 @@ A simple, all-in-one dev container for developing open-source projects with quic
 
 | Step | Command | User | User determined by | When |
 |---|---|---|---|---|
-| `initializeCommand` | `cp --update=none .env.template .env && cp --update=none allowed-domains.txt.template allowed-domains.txt` | host user | host OS | before container starts |
+| `initializeCommand` | `cp -n .env.template .env && cp -n allowed-domains.txt.template allowed-domains.txt` | host user | host OS | before container starts |
 | container start | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
 | `postCreateCommand` | `.devcontainer/init.sh` | codespace | `remoteUser` in `devcontainer.json` | first create only |
 | `postStartCommand` | `sudo docker-init.sh && sudo firewall.sh allowed-domains.txt` | codespace → root | `remoteUser` + `sudo` | every start |
