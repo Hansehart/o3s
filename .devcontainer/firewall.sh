@@ -70,14 +70,13 @@ while read -r cidr; do
     ipset add github-git "$cidr"
 done < <(echo "$gh_ranges" | jq -r '.git[]' | aggregate -q)
 
-# Resolve and add other allowed domains
-for domain in \
-    "registry.npmjs.org" \
-    "api.anthropic.com" \
-    "pypi.org" \
-    "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+# Load allowed domains from .env (path passed as first argument)
+ENV_FILE="${1:?Usage: firewall.sh <path-to-.env>}"
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+
+# Resolve and add allowed domains
+for domain in $ALLOWED_DOMAINS; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then

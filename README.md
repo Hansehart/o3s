@@ -1,6 +1,8 @@
 # O3S - Open Source Software Suite
 A simple, all-in-one dev container for developing open-source projects with quick setup.
 
+![O3S](.github/assets/o3s.png)
+
 ## Getting Started
 
 ### Prerequisites
@@ -25,6 +27,16 @@ A simple, all-in-one dev container for developing open-source projects with quic
    - Your projects should be stored in `/home/codespace/projects` inside the container
    - Press `Ctrl+Shift+P` and use "File: Open Folder" to navigate to `/home/codespace/projects`
    - Happy coding!
+
+## Container Startup Order
+
+| Step | Command | User | User determined by | When |
+|---|---|---|---|---|
+| `initializeCommand` | `cp -n .env.template .env` | host user | host OS | before container starts |
+| container start | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
+| `postCreateCommand` | `.devcontainer/init.sh` | codespace | `remoteUser` in `devcontainer.json` | first create only |
+| `postStartCommand` | `sudo docker-init.sh && sudo firewall.sh` | codespace → root | `remoteUser` + `sudo` | every start |
+| VS Code connects | — | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
 
 ## Included Extensions
 
