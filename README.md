@@ -35,7 +35,7 @@ A simple, all-in-one dev container for developing open-source projects with quic
 | `initializeCommand` | `cp --update=none .env.template .env && cp --update=none allowed-domains.txt.template allowed-domains.txt` | host user | host OS | before container starts |
 | container start | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
 | `postCreateCommand` | `.devcontainer/init.sh` | codespace | `remoteUser` in `devcontainer.json` | first create only |
-| `postStartCommand` | `cp --update=none allowed-domains.txt.template allowed-domains.txt && sudo docker-init.sh && sudo firewall.sh allowed-domains.txt` | codespace → root | `remoteUser` + `sudo` | every start |
+| `postStartCommand` | `sudo docker-init.sh && sudo firewall.sh allowed-domains.txt` | codespace → root | `remoteUser` + `sudo` | every start |
 | VS Code connects | — | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
 
 ## Included Extensions
