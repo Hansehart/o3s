@@ -15,11 +15,11 @@
     "workspaceFolder": "/home/codespace/o3s",
 
     // Intialize .env variables (happens on docker host, only if .env does not exist yet)
-    "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env",
+    "initializeCommand": "cp --update=none .devcontainer/.env.template .devcontainer/.env && cp --update=none .devcontainer/allowed-domains.txt.template .devcontainer/allowed-domains.txt",
     // Execute start up script (inside dev container)
     "postCreateCommand": ".devcontainer/init.sh",
     // Start docker daemon and sett up firewall on every container start (before VS Code connects)
-    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.sh .devcontainer/.env",
+    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.sh .devcontainer/allowed-domains.txt",
     // TODO: parallelize postStartCommand for faster boot up
     // "waitFor": "postStartCommand",
 
