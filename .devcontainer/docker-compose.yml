@@ -9,7 +9,8 @@ services:
     image: o3s:latest
     container_name: o3s
     environment:
-      - CLAUDE_CONFIG_DIR=/home/codespace/config
+      - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
+      - CODEX_HOME=/home/codespace/config/codex
     env_file: .env
     volumes:
       # Host mount for dynamic changes
