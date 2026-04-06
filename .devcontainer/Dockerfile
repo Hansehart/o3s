@@ -32,3 +32,5 @@ USER codespace
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
+# Codex
+RUN npm i -g @openai/codex

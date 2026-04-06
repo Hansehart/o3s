@@ -2,40 +2,13 @@
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
-# 1. Extract Docker DNS info BEFORE any flushing
-DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
+CHAIN="DEVCONTAINER-OUTPUT"
 
-# Flush existing rules and delete existing ipsets
-iptables -F
-iptables -X
-iptables -t nat -F
-iptables -t nat -X
-iptables -t mangle -F
-iptables -t mangle -X
-ipset destroy allowed-domains 2>/dev/null || true
-ipset destroy github-git 2>/dev/null || true
-
-# 2. Selectively restore ONLY internal Docker DNS resolution
-if [ -n "$DOCKER_DNS_RULES" ]; then
-    echo "Restoring Docker DNS rules..."
-    iptables -t nat -N DOCKER_OUTPUT 2>/dev/null || true
-    iptables -t nat -N DOCKER_POSTROUTING 2>/dev/null || true
-    echo "$DOCKER_DNS_RULES" | xargs -L 1 iptables -t nat
-else
-    echo "No Docker DNS rules to restore"
-fi
-
-# First allow DNS and localhost before any restrictions
-# Allow DNS only to Docker's internal resolver (127.0.0.11) to prevent DNS tunneling
-iptables -A OUTPUT -p udp -d 127.0.0.11 --dport 53 -j ACCEPT
-iptables -A INPUT  -p udp -s 127.0.0.11 --sport 53 -j ACCEPT
-# Allow localhost
-iptables -A INPUT -i lo -j ACCEPT
-iptables -A OUTPUT -o lo -j ACCEPT
-
-# Create ipsets with CIDR support
-ipset create allowed-domains hash:net
-ipset create github-git hash:net
+# Create or reset the ipsets used by the outbound allowlist.
+ipset create allowed-domains hash:net -exist
+ipset create github-git hash:net -exist
+ipset flush allowed-domains
+ipset flush github-git
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
 echo "Fetching GitHub IP ranges..."
@@ -57,7 +30,7 @@ while read -r cidr; do
         exit 1
     fi
     echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
+    ipset add allowed-domains "$cidr" -exist
 done < <(echo "$gh_ranges" | jq -r '(.api + .git)[]' | aggregate -q)
 
 echo "Processing GitHub git IPs (SSH)..."
@@ -67,7 +40,7 @@ while read -r cidr; do
         exit 1
     fi
     echo "Adding GitHub git range $cidr"
-    ipset add github-git "$cidr"
+    ipset add github-git "$cidr" -exist
 done < <(echo "$gh_ranges" | jq -r '.git[]' | aggregate -q)
 
 # Load allowed domains from .env (path passed as first argument)
@@ -90,7 +63,7 @@ for domain in $ALLOWED_DOMAINS; do
             exit 1
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add allowed-domains "$ip" -exist
     done < <(echo "$ips")
 done
 
@@ -104,26 +77,35 @@ fi
 HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
 echo "Host network detected as: $HOST_NETWORK"
 
-# Set up remaining iptables rules
-iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
-iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
+# Manage our own chain only
+iptables -N "$CHAIN" 2>/dev/null || true
+iptables -F "$CHAIN"
 
-# Set default policies to DROP first
-iptables -P INPUT DROP
-iptables -P FORWARD DROP
-iptables -P OUTPUT DROP
+# Allow localhost and replies for approved traffic
+iptables -A "$CHAIN" -o lo -j ACCEPT
+iptables -A "$CHAIN" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-# First allow established connections for already approved traffic
-iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# Allow DNS only to Docker's internal resolver to prevent generic DNS tunneling
+iptables -A "$CHAIN" -p udp -d 127.0.0.11 --dport 53 -j ACCEPT
+iptables -A "$CHAIN" -p tcp -d 127.0.0.11 --dport 53 -j ACCEPT
 
-# Then allow only specific outbound traffic to allowed domains (HTTPS only)
-iptables -A OUTPUT -p tcp -m set --match-set allowed-domains dst --dport 443 -j ACCEPT
-# Allow SSH only to GitHub git ranges
-iptables -A OUTPUT -p tcp -m set --match-set github-git dst --dport 22 -j ACCEPT
+# Allow access to the host network and inner Docker bridges for local development workflows
+iptables -A "$CHAIN" -d "$HOST_NETWORK" -j ACCEPT
+iptables -A "$CHAIN" -o docker0 -j ACCEPT
+iptables -A "$CHAIN" -o br+ -j ACCEPT
 
-# Explicitly REJECT all other outbound traffic for immediate feedback
-iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
+# Allow only specific outbound traffic to approved destinations
+iptables -A "$CHAIN" -p tcp -m set --match-set allowed-domains dst --dport 443 -j ACCEPT
+iptables -A "$CHAIN" -p tcp -m set --match-set github-git dst --dport 22 -j ACCEPT
+
+# Explicitly reject everything else from this container
+iptables -A "$CHAIN" -j REJECT --reject-with icmp-admin-prohibited
+
+# Ensure our chain is first in OUTPUT so later ACCEPT rules cannot bypass the policy
+while iptables -C OUTPUT -j "$CHAIN" 2>/dev/null; do
+    iptables -D OUTPUT -j "$CHAIN"
+done
+iptables -I OUTPUT 1 -j "$CHAIN"
 
 echo "Firewall configuration complete"
 echo "Verifying firewall rules..."
