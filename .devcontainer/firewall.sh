@@ -43,13 +43,24 @@ while read -r cidr; do
     ipset add github-git "$cidr" -exist
 done < <(echo "$gh_ranges" | jq -r '.git[]' | aggregate -q)
 
-# Load allowed domains from .env (path passed as first argument)
-ENV_FILE="${1:?Usage: firewall.sh <path-to-.env>}"
-# shellcheck source=/dev/null
-source "$ENV_FILE"
+# Load allowed domains from a plain text allowlist file (path passed as first argument)
+ALLOWLIST_FILE="${1:?Usage: firewall.sh <path-to-allowed-domains-file>}"
+if [ ! -f "$ALLOWLIST_FILE" ]; then
+    echo "ERROR: Allowlist file not found: $ALLOWLIST_FILE"
+    exit 1
+fi
 
 # Resolve and add allowed domains
-for domain in $ALLOWED_DOMAINS; do
+while IFS= read -r domain || [ -n "$domain" ]; do
+    domain="${domain%$'\r'}"
+    [ -z "$domain" ] && continue
+    [[ "$domain" =~ ^[[:space:]]*# ]] && continue
+
+    if [[ ! "$domain" =~ ^[A-Za-z0-9.-]+$ ]]; then
+        echo "ERROR: Invalid domain in allowlist: $domain"
+        exit 1
+    fi
+
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
@@ -65,7 +76,7 @@ for domain in $ALLOWED_DOMAINS; do
         echo "Adding $ip for $domain"
         ipset add allowed-domains "$ip" -exist
     done < <(echo "$ips")
-done
+done < "$ALLOWLIST_FILE"
 
 # Get host IP from default route
 HOST_IP=$(ip route | grep default | cut -d" " -f3)

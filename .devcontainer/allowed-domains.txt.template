@@ -1,0 +1,12 @@
+# Firewall allowlist
+api.anthropic.com
+chatgpt.com
+auth.docker.io
+registry-1.docker.io
+production.cloudflare.docker.com
+registry.npmjs.org
+auth.openai.com
+pypi.org
+marketplace.visualstudio.com
+update.code.visualstudio.com
+vscode.blob.core.windows.net
