@@ -3,11 +3,17 @@ FROM mcr.microsoft.com/devcontainers/universal
 # Remove Yarn repo if present (fix upstream GPG issues)
 RUN rm -f /etc/apt/sources.list.d/yarn.list || true
 
-# Firewall tools
+# Additional tools (e.g for firewall)
 RUN apt-get update && apt-get install -y \
   aggregate \
   dnsutils \
   ipset \
+  && rm -rf /var/lib/apt/lists/*
+
+# Google Chrome (for chrome-devtools-mcp)
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null \
+  && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+  && apt-get update && apt-get install -y google-chrome-stable \
   && rm -rf /var/lib/apt/lists/*
 
 # Latex suppport with common packages (paper writing)
@@ -19,7 +25,7 @@ RUN apt-get update && apt-get install -y \
   texlive-latex-extra \
   && rm -rf /var/lib/apt/lists/*
 
-# Firewall script (run at container start via postStartCommand)
+# Firewall script (runs at container start)
 COPY firewall.sh /usr/local/bin/firewall.sh
 RUN chmod 755 /usr/local/bin/firewall.sh
 
