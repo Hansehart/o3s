@@ -64,8 +64,8 @@ while IFS= read -r domain || [ -n "$domain" ]; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
-        echo "ERROR: Failed to resolve $domain"
-        exit 1
+        echo "WARNING: Failed to resolve $domain, skipping"
+        continue
     fi
 
     while read -r ip; do

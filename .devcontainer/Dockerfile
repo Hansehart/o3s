@@ -6,6 +6,7 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list || true
 # Additional tools (e.g for firewall)
 RUN apt-get update && apt-get install -y \
   aggregate \
+  cron \
   dnsutils \
   ipset \
   && rm -rf /var/lib/apt/lists/*
@@ -28,6 +29,9 @@ RUN apt-get update && apt-get install -y \
 # Firewall script (runs at container start)
 COPY firewall.sh /usr/local/bin/firewall.sh
 RUN chmod 755 /usr/local/bin/firewall.sh
+# Cron job for periodic IP refresh
+COPY firewall-cron /etc/cron.d/firewall-refresh
+RUN chmod 644 /etc/cron.d/firewall-refresh
 
 # Switch user
 USER codespace
