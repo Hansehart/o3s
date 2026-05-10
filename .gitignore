@@ -1,2 +1,4 @@
 .env
 allowed-domains.txt
+o3s.code-workspace
+*.txt
