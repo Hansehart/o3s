@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
   cron \
   dnsutils \
   ipset \
+  ripgrep \
   && rm -rf /var/lib/apt/lists/*
 
 # Google Chrome (for chrome-devtools-mcp)
