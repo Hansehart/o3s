@@ -49,8 +49,8 @@ A plug-and-play dev container for open-source development - built for AI agents,
    - Your projects live in `/home/codespace/projects`
    - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and use `File: Open Folder` to navigate there
 
-> [!WARNING]
-> Your projects live in `/home/codespace/projects` and survive container rebuilds, but not volume deletion. Commit and push regularly.
+> [!TIP]
+> Work inside `/home/codespace/projects` - your data will persist across sessions. Only work outside of it if you know what you are doing.
 
 ## Advanced
 
@@ -70,9 +70,13 @@ A plug-and-play dev container for open-source development - built for AI agents,
 <details>
 <summary>Data Persistence</summary>
 
-- **Persistent folders**: The O3S workspace (`/home/codespace/O3S`) and your projects folder (`/home/codespace/projects`) are preserved across container rebuilds
-- **Docker volumes**: If you delete the volume, all data in `/home/codespace/projects` will be lost
-- **Recommendation**: Regularly commit and push your work to Git repositories
+| Folder | Type | Survives Rebuild |
+|--------|------|-----------------|
+| `/home/codespace/o3s` | Host mount | ✅ |
+| `/home/codespace/projects` | Docker volume | ✅ |
+
+> [!WARNING]
+> Deleting the Docker volume will permanently destroy `/home/codespace/projects`.
 
 </details>
 
