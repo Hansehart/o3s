@@ -1,49 +1,57 @@
 # O3S - Open Source Software Suite
-A simple, all-in-one dev container for developing open-source projects with quick setup.
+A plug-and-play dev container for open-source development - built for AI agents, safe by design.
 
 ![O3S](.github/assets/o3s.png)
 
-## ⚠️ WARNING: Data Persistence
+## Why O3S?
 
-- **Persistent folders**: The O3S workspace (`/home/codespace/O3S`) and your projects folder (`/home/codespace/projects`) are preserved across container rebuilds
-- **Docker volumes**: If you delete the volume, all data in `/home/codespace/projects` will be lost
-- **Recommendation**: Regularly commit and push your work to Git repositories
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🔌 Plug & Play</h3>
+      <p>As AI coding agents become part of every workflow, the environment they run in matters as much as the code they write. Clone the repo, reopen in container - done.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🛡️ Safe Agent Isolation</h3>
+      <p>AI agents are powerful but probabilistic - they can and will make mistakes. The firewall doesn't care. It deterministically blocks any outbound traffic not on your allowlist, no matter what the model decided to do.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🐳 Prototype to Production</h3>
+      <p>Docker-in-Docker and Kubernetes built in. Don't hope your stack works in prod - spin it up, let your agent pen test it, and know before you ship.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>☁️ Free Cloud Compute</h3>
+      <p>No GPU? No problem. Open a notebook and let Google Colab handle the heavy lifting - TPU-backed compute, for free, without leaving your workspace.</p>
+    </td>
+  </tr>
+</table>
+
+> [!WARNING]
+> Your projects live in `/home/codespace/projects` and survive container rebuilds, but not volume deletion. Commit and push regularly.
 
 ## Getting Started
 
 ### Prerequisites
 - Install [Docker Engine/Desktop](https://docs.docker.com/engine/install/)
 - Install [Visual Studio Code](https://code.visualstudio.com/download)
+- Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) in VS Code
 
 ### Setup
-1. **Install the Dev Containers extension**
-   - Open VS Code, press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
-   - Type `Extensions: Install Extensions`
-   - Search for `ms-vscode-remote.remote-containers` and install it
-
-2. **Open this project in a container**
-   - Clone this repository and open the folder in VS Code
-   - Press `Ctrl+Shift+P` and select `Dev Containers: Reopen in Container`
-   - Wait for the container to build (first time takes a few minutes)
-
-3. **Start developing**
-   - Your projects should be stored in `/home/codespace/projects` inside the container
-   - Press `Ctrl+Shift+P` and use "File: Open Folder" to navigate to `/home/codespace/projects`
-   - Happy coding!
-
-### Customization
-
-1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:
+1. **Clone the repository**
    ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "your@email.com"
+   git clone git@github.com:Hansehart/o3s.git
    ```
 
-2. **`.devcontainer/.env`** - copied from `.env.template` on first start. Fill in your values:
-   - **Resource limits**: `MEMORY_LIMIT`, `CPU_LIMIT` - cap container resource usage
-   - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
+2. **Open the folder in VS Code**
+   - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and select `Dev Containers: Reopen in Container`
+   - The container builds automatically (first time takes a few moments)
 
-3. **`.devcontainer/allowed-domains.txt`** - copied from `allowed-domains.txt.template` on first start. Lists domains the firewall permits outbound HTTPS access to. Add any additional hosts your projects need.
+3. **Start developing**
+   - Your projects live in `/home/codespace/projects`
+   - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and use `File: Open Folder` to navigate there
+
 
 ## Advanced
 
@@ -61,6 +69,15 @@ A simple, all-in-one dev container for developing open-source projects with quic
 </details>
 
 <details>
+<summary>Data Persistence</summary>
+
+- **Persistent folders**: The O3S workspace (`/home/codespace/O3S`) and your projects folder (`/home/codespace/projects`) are preserved across container rebuilds
+- **Docker volumes**: If you delete the volume, all data in `/home/codespace/projects` will be lost
+- **Recommendation**: Regularly commit and push your work to Git repositories
+
+</details>
+
+<details>
 <summary>Included Extensions</summary>
 
 | Name | Tag | Purpose |
@@ -72,5 +89,22 @@ A simple, all-in-one dev container for developing open-source projects with quic
 | Jupyter | `ms-toolsai.jupyter` | Interactive coding notebooks |
 | LaTeX Workshop | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
 | Python | `ms-python.python` | Python language support and debugging |
+
+</details>
+
+<details>
+<summary>Recommended Customization</summary>
+
+1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:
+   ```bash
+   git config --global user.name "Your Name"
+   git config --global user.email "your@email.com"
+   ```
+
+2. **`.devcontainer/.env`** - copied from `.env.template` on first start. Fill in your values:
+   - **Resource limits**: `MEMORY_LIMIT`, `CPU_LIMIT` - cap container resource usage
+   - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
+
+3. **`.devcontainer/allowed-domains.txt`** - copied from `allowed-domains.txt.template` on first start. Lists domains the firewall permits outbound HTTPS access to. Add any additional hosts your projects need.
 
 </details>
