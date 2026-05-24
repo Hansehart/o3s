@@ -28,9 +28,6 @@ A plug-and-play dev container for open-source development - built for AI agents,
   </tr>
 </table>
 
-> [!WARNING]
-> Your projects live in `/home/codespace/projects` and survive container rebuilds, but not volume deletion. Commit and push regularly.
-
 ## Getting Started
 
 ### Prerequisites
@@ -52,6 +49,8 @@ A plug-and-play dev container for open-source development - built for AI agents,
    - Your projects live in `/home/codespace/projects`
    - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and use `File: Open Folder` to navigate there
 
+> [!WARNING]
+> Your projects live in `/home/codespace/projects` and survive container rebuilds, but not volume deletion. Commit and push regularly.
 
 ## Advanced
 
