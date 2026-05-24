@@ -75,8 +75,7 @@ A plug-and-play dev container for open-source development - built for AI agents,
 | `/home/codespace/o3s` | Host mount | ✅ |
 | `/home/codespace/projects` | Docker volume | ✅ |
 
-> [!WARNING]
-> Deleting the Docker volume will permanently destroy `/home/codespace/projects`.
+⚠️ Deleting the Docker volume will permanently destroy `/home/codespace/projects`.
 
 </details>
 
