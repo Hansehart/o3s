@@ -26,6 +26,9 @@
     // VSCode settings
     "customizations": {
         "vscode": {
+            "settings": {
+                "remote.autoForwardPorts": false
+            },
             "extensions": [
                 // Container Tools
                 "ms-azuretools.vscode-containers",

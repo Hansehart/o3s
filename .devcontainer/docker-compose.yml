@@ -11,6 +11,8 @@ services:
     environment:
       - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
       - CODEX_HOME=/home/codespace/config/codex
+      - CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+      - DISABLE_GROWTHBOOK=1
     env_file: .env
     volumes:
       # Host mount for dynamic changes
