@@ -1,14 +1,15 @@
 # Firewall allowlist — add your project domains below
 
 # AI providers
-api.anthropic.com/32
+chatgpt.com/32
 auth.openai.com/32
+api.anthropic.com/32
 
 # Docker
 auth.docker.io/32
+docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com/32
 registry-1.docker.io/32
 production.cloudflare.docker.com/32
-docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com/32
 
 # Package managers
 registry.npmjs.org/32
