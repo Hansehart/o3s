@@ -16,12 +16,8 @@
 
     // Intialize .env variables (happens on docker host, only if .env does not exist yet)
     "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env && cp -n .devcontainer/allowed-domains.txt.template .devcontainer/allowed-domains.txt",
-    // Execute start up script (inside dev container)
-    "postCreateCommand": ".devcontainer/init.sh",
     // Start docker daemon, set up firewall, and start cron for periodic IP refresh on every container start
-    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.sh .devcontainer/allowed-domains.txt && sudo service cron start",
-    // TODO: parallelize postStartCommand for faster boot up
-    // "waitFor": "postStartCommand",
+    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.py .devcontainer/allowed-domains.txt && sudo service cron start",
 
     // VSCode settings
     "customizations": {
