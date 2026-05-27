@@ -5,9 +5,7 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list || true
 
 # Additional tools (e.g for firewall)
 RUN apt-get update && apt-get install -y \
-  aggregate \
   cron \
-  dnsutils \
   ipset \
   ripgrep \
   && rm -rf /var/lib/apt/lists/*
@@ -28,8 +26,8 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Firewall script (runs at container start)
-COPY firewall.sh /usr/local/bin/firewall.sh
-RUN chmod 755 /usr/local/bin/firewall.sh
+COPY firewall.py /usr/local/bin/firewall.py
+RUN chmod 755 /usr/local/bin/firewall.py
 # Cron job for periodic IP refresh
 COPY firewall-cron /etc/cron.d/firewall-refresh
 RUN chmod 644 /etc/cron.d/firewall-refresh
@@ -37,7 +35,7 @@ RUN chmod 644 /etc/cron.d/firewall-refresh
 # Switch user
 USER codespace
 # TODO: Harden sudo rights for codespace user (currently NOPASSWD:ALL from base image)
-# sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/share\/ssh-init.sh, \/usr\/local\/bin\/firewall.sh/' /etc/sudoers.d/codespace
+# sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/share\/ssh-init.sh, \/usr\/local\/bin\/firewall.py/' /etc/sudoers.d/codespace
 
 # UV support (efficient package manager for Python)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh

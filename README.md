@@ -61,8 +61,7 @@ A plug-and-play dev container for open-source development - built for AI agents,
 |---|---|---|---|---|
 | `initializeCommand` | `cp -n .env.template .env && cp -n allowed-domains.txt.template allowed-domains.txt` | host user | host OS | before container starts |
 | container start | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
-| `postCreateCommand` | `.devcontainer/init.sh` | codespace | `remoteUser` in `devcontainer.json` | first create only |
-| `postStartCommand` | `sudo docker-init.sh && sudo firewall.sh allowed-domains.txt` | codespace + root | `remoteUser` + `sudo` | every start |
+| `postStartCommand` | `sudo docker-init.sh && sudo firewall.py allowed-domains.txt` | codespace + root | `remoteUser` + `sudo` | every start |
 | VS Code connects | - | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
 
 </details>

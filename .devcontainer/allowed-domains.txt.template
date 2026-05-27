@@ -1,13 +1,22 @@
-# Firewall allowlist
-api.anthropic.com
-chatgpt.com
-docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com
-auth.docker.io
-registry-1.docker.io
-production.cloudflare.docker.com
-registry.npmjs.org
-auth.openai.com
-pypi.org
-marketplace.visualstudio.com
-update.code.visualstudio.com
-vscode.blob.core.windows.net
+# Firewall allowlist — add your project domains below
+
+# AI providers
+api.anthropic.com/32
+auth.openai.com/32
+
+# Docker
+auth.docker.io/32
+registry-1.docker.io/32
+production.cloudflare.docker.com/32
+docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com/32
+
+# Package managers
+registry.npmjs.org/32
+pypi.org/32
+
+# VS Code
+marketplace.visualstudio.com/32
+update.code.visualstudio.com/32
+vscode.blob.core.windows.net/32
+
+# Custom
