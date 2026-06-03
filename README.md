@@ -94,7 +94,7 @@ A plug-and-play dev container for open-source development - built for AI agents,
 </details>
 
 <details>
-<summary>uv Venv — VS Code "broken" Fix</summary>
+<summary>Python uv</summary>
 
 VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
 
