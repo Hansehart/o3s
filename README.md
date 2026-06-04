@@ -79,6 +79,23 @@ A plug-and-play dev container for open-source development - built for AI agents,
 </details>
 
 <details>
+<summary>GPU Support</summary>
+
+NVIDIA GPU passthrough requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the Docker host. On WSL2, install it inside WSL2 (not Windows) after confirming `nvidia-smi` works on each layer.
+
+The `docker-compose.yml` already includes the GPU reservation block, just uncomment it:
+
+```yaml
+reservations:
+  devices:
+    - driver: nvidia
+      count: all
+      capabilities: [gpu]
+```
+
+</details>
+
+<details>
 <summary>Included Extensions</summary>
 
 | Name | Tag | Purpose |
@@ -90,26 +107,6 @@ A plug-and-play dev container for open-source development - built for AI agents,
 | Jupyter | `ms-toolsai.jupyter` | Interactive coding notebooks |
 | LaTeX Workshop | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
 | Python | `ms-python.python` | Python language support and debugging |
-
-</details>
-
-<details>
-<summary>Python uv</summary>
-
-VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
-
-**Fix**: repoint the three Python symlinks directly to the versioned path (replace `<project>` and the version as needed):
-
-```bash
-TARGET=/home/codespace/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/bin/python3.13
-VENV=/home/codespace/projects/<project>/.venv/bin
-
-ln -sf $TARGET $VENV/python
-ln -sf $TARGET $VENV/python3
-ln -sf $TARGET $VENV/python3.13
-```
-
-No packages are affected, only the interpreter symlinks are updated.
 
 </details>
 
@@ -127,5 +124,25 @@ No packages are affected, only the interpreter symlinks are updated.
    - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
 
 3. **`.devcontainer/allowed-domains.txt`** - copied from `allowed-domains.txt.template` on first start. Lists domains the firewall permits outbound HTTPS access to. Add any additional hosts your projects need.
+
+</details>
+
+<details>
+<summary>Python (uv)</summary>
+
+VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
+
+**Fix**: repoint the three Python symlinks directly to the versioned path (replace `<project>` and the version as needed):
+
+```bash
+TARGET=/home/codespace/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/bin/python3.13
+VENV=/home/codespace/projects/<project>/.venv/bin
+
+ln -sf $TARGET $VENV/python
+ln -sf $TARGET $VENV/python3
+ln -sf $TARGET $VENV/python3.13
+```
+
+No packages are affected, only the interpreter symlinks are updated.
 
 </details>
