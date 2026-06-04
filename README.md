@@ -94,6 +94,26 @@ A plug-and-play dev container for open-source development - built for AI agents,
 </details>
 
 <details>
+<summary>Python uv</summary>
+
+VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
+
+**Fix**: repoint the three Python symlinks directly to the versioned path (replace `<project>` and the version as needed):
+
+```bash
+TARGET=/home/codespace/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/bin/python3.13
+VENV=/home/codespace/projects/<project>/.venv/bin
+
+ln -sf $TARGET $VENV/python
+ln -sf $TARGET $VENV/python3
+ln -sf $TARGET $VENV/python3.13
+```
+
+No packages are affected, only the interpreter symlinks are updated.
+
+</details>
+
+<details>
 <summary>Recommended Customization</summary>
 
 1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:
