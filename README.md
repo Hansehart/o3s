@@ -114,6 +114,23 @@ No packages are affected, only the interpreter symlinks are updated.
 </details>
 
 <details>
+<summary>GPU Support</summary>
+
+NVIDIA GPU passthrough requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the Docker host. On WSL2, install it inside WSL2 (not Windows) after confirming `nvidia-smi` works on each layer.
+
+The `docker-compose.yml` already includes the GPU reservation block, just uncomment it:
+
+```yaml
+reservations:
+  devices:
+    - driver: nvidia
+      count: all
+      capabilities: [gpu]
+```
+
+</details>
+
+<details>
 <summary>Recommended Customization</summary>
 
 1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:

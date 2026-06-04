@@ -9,8 +9,9 @@ services:
     image: o3s:latest
     container_name: o3s
     environment:
-      - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
       - CODEX_HOME=/home/codespace/config/codex
+      - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
+      # Disable unneccesary claude network traffic
       - CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
       - DISABLE_GROWTHBOOK=1
     env_file: .env
@@ -27,6 +28,11 @@ services:
         limits:
           memory: ${MEMORY_LIMIT}
           cpus: ${CPU_LIMIT}
+        #reservations:
+        #  devices:
+        #    - driver: nvidia
+        #      count: all
+        #      capabilities: [gpu]
     # Required for iptables/ipset firewall management
     cap_add:
       - NET_ADMIN
