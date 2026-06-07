@@ -132,9 +132,15 @@ reservations:
 
 VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
 
-**Fix**: repoint the three Python symlinks directly to the versioned path (replace `<project>` and the version as needed):
+Additionally, uv downloads its managed Python into `~/.local/share/uv/python/` which lives in the user home layer. After a **container rebuild** this layer is wiped, breaking all venv symlinks.
+
+**Fix after a rebuild**: re-download uv's managed Python, then repoint the symlinks:
 
 ```bash
+# 1. re-download uv's managed Python
+uv python install <version>
+
+# 2. repoint symlinks for each project
 TARGET=/home/codespace/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/bin/python3.13
 VENV=/home/codespace/projects/<project>/.venv/bin
 
@@ -143,6 +149,6 @@ ln -sf $TARGET $VENV/python3
 ln -sf $TARGET $VENV/python3.13
 ```
 
-No packages are affected, only the interpreter symlinks are updated.
+No packages are affected — only the interpreter symlinks are updated. The packages in `.venv/lib/` survive rebuilds as they live in the Docker volume.
 
 </details>
