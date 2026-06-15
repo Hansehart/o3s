@@ -57,12 +57,13 @@ A plug-and-play dev container for open-source development - built for AI agents,
 <details>
 <summary>Container Startup Order</summary>
 
-| Step | Command | User | User determined by | When |
-|---|---|---|---|---|
-| `initializeCommand` | `cp -n .env.template .env && cp -n allowed-domains.txt.template allowed-domains.txt` | host user | host OS | before container starts |
-| container start | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
-| `postStartCommand` | `sudo docker-init.sh && sudo firewall.py allowed-domains.txt` | codespace + root | `remoteUser` + `sudo` | every start |
-| VS Code connects | - | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
+| Step | Purpose | Command | User | User determined by | When |
+|---|---|---|---|---|---|
+| `initializeCommand` | Copy templates to editable files | `commands/initialize.sh` | host user | host OS | before container starts |
+| container start | Keep container alive | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
+| `postStartCommand` | Start Docker daemon, configure firewall, start cron | `commands/post-start.sh` | codespace + root | `remoteUser` + `sudo` | every start |
+| VS Code connects | - | - | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
+| `postAttachCommand` | Install optional VS Code extensions from `.env` | `commands/post-attach.sh` | codespace | `remoteUser` | after VS Code attaches |
 
 </details>
 
@@ -96,17 +97,33 @@ reservations:
 </details>
 
 <details>
-<summary>Included Extensions</summary>
+<summary>Selectable Extensions</summary>
 
-| Name | Tag | Purpose |
-|------|-----|---------|
-| Containers | `ms-azuretools.vscode-containers` | Container orchestration |
-| Data Wrangler | `ms-toolsai.datawrangler` | Data viewing and manipulation |
-| GitHub | `github.vscode-pull-request-github` | Manage PRs and issues without leaving the IDE |
-| Google Colab | `google.colab` | Remote notebook execution with GPU support |
-| Jupyter | `ms-toolsai.jupyter` | Interactive coding notebooks |
-| LaTeX Workshop | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
-| Python | `ms-python.python` | Python language support and debugging |
+Enable in `.devcontainer/.env` before rebuilding:
+
+| Name | `.env` key | Tag | Purpose |
+|------|-----------|-----|---------|
+| Google Colab | `EXT_COLAB` | `google.colab` | Remote notebook execution with GPU support |
+| Containers | `EXT_CONTAINERS` | `ms-azuretools.vscode-containers` | Container orchestration |
+| Data Wrangler | `EXT_DATAWRANGLER` | `ms-toolsai.datawrangler` | Data viewing and manipulation |
+| Jupyter | `EXT_JUPYTER` | `ms-toolsai.jupyter` | Interactive coding notebooks |
+| LaTeX Workshop | `EXT_LATEX` | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
+| Python | `EXT_PYTHON` | `ms-python.python` | Python language support and debugging |
+
+</details>
+
+<details>
+<summary>Selectable Tools</summary>
+
+Enable in `.devcontainer/.env` before rebuilding:
+
+| Name | `.env` key | Purpose |
+|------|-----------|---------|
+| Chrome | `INSTALL_CHROME` | Browser MCP |
+| Claude Code | `INSTALL_CLAUDE` | Claude Code CLI |
+| Codex | `INSTALL_CODEX` | Codex CLI |
+| LaTeX | `INSTALL_LATEX` | Paper Writing |
+| uv | `INSTALL_UV` | Python Package Manager |
 
 </details>
 
@@ -122,6 +139,8 @@ reservations:
 2. **`.devcontainer/.env`** - copied from `.env.template` on first start. Fill in your values:
    - **Resource limits**: `MEMORY_LIMIT`, `CPU_LIMIT` - cap container resource usage
    - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
+   - **Selectable tools**: `INSTALL_CHROME`, `INSTALL_CLAUDE`, `INSTALL_CODEX`, `INSTALL_LATEX`, `INSTALL_UV`
+   - **Selectable extensions**: `EXT_COLAB`, `EXT_CONTAINERS`, `EXT_DATAWRANGLER`, `EXT_JUPYTER`, `EXT_LATEX`, `EXT_PYTHON`
 
 3. **`.devcontainer/allowed-domains.txt`** - copied from `allowed-domains.txt.template` on first start. Lists domains the firewall permits outbound HTTPS access to. Add any additional hosts your projects need.
 
