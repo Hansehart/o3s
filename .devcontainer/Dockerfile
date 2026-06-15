@@ -1,3 +1,4 @@
+# https://github.com/devcontainers/images/tree/main/src/universal
 FROM mcr.microsoft.com/devcontainers/universal
 
 # Remove Yarn repo if present (fix upstream GPG issues)
@@ -10,20 +11,24 @@ RUN apt-get update && apt-get install -y \
   ripgrep \
   && rm -rf /var/lib/apt/lists/*
 
-# Google Chrome (for chrome-devtools-mcp)
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null \
+# Browser MCP
+ARG INSTALL_CHROME=false
+RUN if [ "$INSTALL_CHROME" = "true" ]; then \
+  wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null \
   && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
   && apt-get update && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*; fi
 
-# Latex suppport with common packages (paper writing)
-RUN apt-get update && apt-get install -y \
+# Paper Writing
+ARG INSTALL_LATEX=false
+RUN if [ "$INSTALL_LATEX" = "true" ]; then \
+  apt-get update && apt-get install -y \
   biber \
   latexmk \
   texlive-bibtex-extra \
   texlive-fonts-recommended \
   texlive-latex-extra \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*; fi
 
 # Firewall script (runs at container start)
 COPY firewall.py /usr/local/bin/firewall.py
@@ -37,9 +42,13 @@ USER codespace
 # TODO: Harden sudo rights for codespace user (currently NOPASSWD:ALL from base image)
 # sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/share\/ssh-init.sh, \/usr\/local\/bin\/firewall.py/' /etc/sudoers.d/codespace
 
-# UV support (efficient package manager for Python)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# Python Package Manager
+ARG INSTALL_UV=false
+RUN if [ "$INSTALL_UV" = "true" ]; then curl -LsSf https://astral.sh/uv/install.sh | sh; fi
 # Claude Code CLI
-RUN curl -fsSL https://claude.ai/install.sh | bash
-# Codex
-RUN npm i -g @openai/codex
+ARG INSTALL_CLAUDE=true
+RUN if [ "$INSTALL_CLAUDE" = "true" ]; then curl -fsSL https://claude.ai/install.sh | bash; fi
+
+# Codex CLI
+ARG INSTALL_CODEX=false
+RUN if [ "$INSTALL_CODEX" = "true" ]; then npm i -g @openai/codex; fi

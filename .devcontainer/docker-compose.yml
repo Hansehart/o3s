@@ -6,11 +6,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        INSTALL_CHROME: ${INSTALL_CHROME:-false}
+        INSTALL_CLAUDE: ${INSTALL_CLAUDE:-false}
+        INSTALL_CODEX: ${INSTALL_CODEX:-false}
+        INSTALL_LATEX: ${INSTALL_LATEX:-false}
+        INSTALL_UV: ${INSTALL_UV:-false}
     image: o3s:latest
     container_name: o3s
-    environment:
+    environment: # If tools are missing they are silently ignored
       - CODEX_HOME=/home/codespace/config/codex
       - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
+      - UV_PYTHON_INSTALL_DIR=/home/codespace/projects/.uv/python
       # Disable unneccesary claude network traffic
       - CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
       - DISABLE_GROWTHBOOK=1

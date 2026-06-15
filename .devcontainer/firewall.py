@@ -27,7 +27,7 @@ def to_network(ip: str, prefix: int) -> str:
 
 def resolve(domain: str) -> list[str]:
     try:
-        return list({r[4][0] for r in socket.getaddrinfo(domain, None, socket.AF_INET)})
+        return list({str(r[4][0]) for r in socket.getaddrinfo(domain, None, socket.AF_INET)})
     except socket.gaierror:
         print(f"WARNING: Failed to resolve {domain}, skipping")
         return []
@@ -39,12 +39,16 @@ def parse_allowlist(path: Path) -> list[tuple[str, int]]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        if m := re.fullmatch(r"([A-Za-z0-9.-]+)/(\d{1,2})", line):
-            prefix = int(m.group(2))
+        if m := re.fullmatch(r"(\*\.)?([A-Za-z0-9.-]+)/(\d{1,2})", line):
+            wildcard = m.group(1)
+            domain   = m.group(2)
+            prefix   = int(m.group(3))
             if prefix > 32:
                 print(f"ERROR: Invalid prefix length in: {line}", file=sys.stderr)
                 sys.exit(1)
-            entries.append((m.group(1), prefix))
+            if wildcard:
+                domain = "probe." + domain
+            entries.append((domain, prefix))
         else:
             print(f"ERROR: Invalid entry (expected domain/prefix): {line}", file=sys.stderr)
             sys.exit(1)
