@@ -14,33 +14,19 @@
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/codespace/o3s",
 
-    // Intialize .env variables (happens on docker host, only if .env does not exist yet)
-    "initializeCommand": "cp -n .devcontainer/.env.template .devcontainer/.env && cp -n .devcontainer/allowed-domains.txt.template .devcontainer/allowed-domains.txt",
-    // Start docker daemon, set up firewall, and start cron for periodic IP refresh on every container start
-    "postStartCommand": "sudo /usr/local/share/docker-init.sh && sudo /usr/local/bin/firewall.py .devcontainer/allowed-domains.txt && sudo service cron start",
+    // Copy .env and allowed-domains.txt from templates if they don't exist yet
+    "initializeCommand": "bash .devcontainer/commands/initialize.sh",
+    // Start docker daemon, set up firewall, and start cron on every container start
+    "postStartCommand": "bash .devcontainer/commands/post-start.sh",
+    // Install extensions after VS Code attaches
+    "postAttachCommand": "bash .devcontainer/commands/post-attach.sh",
 
     // VSCode settings
     "customizations": {
         "vscode": {
             "settings": {
                 "remote.autoForwardPorts": false
-            },
-            "extensions": [
-                // Container Tools
-                "ms-azuretools.vscode-containers",
-                // Data viewer
-                "ms-toolsai.datawrangler",
-                // GitHub Pull Requests and Issues
-                "github.vscode-pull-request-github",
-                // Google Colab (Remote kernel with GPU)
-                "google.colab",
-                // Jupyter notebooks (Local kernel)
-                "ms-toolsai.jupyter",
-                // LaTeX editing and compilation
-                "james-yu.latex-workshop",
-                // Python
-                "ms-python.python"
-            ]
+            }
         }
     }
 }

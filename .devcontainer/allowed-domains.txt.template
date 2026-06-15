@@ -4,6 +4,7 @@
 api.anthropic.com/32
 chatgpt.com/32
 auth.openai.com/32
+api.openai.com/32
 
 # Docker
 docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com/32
@@ -19,6 +20,7 @@ pypi.org/32
 # VS Code
 marketplace.visualstudio.com/32
 update.code.visualstudio.com/32
+*.gallerycdn.vsassets.io/24
 vscode.blob.core.windows.net/32
 
 # Custom
