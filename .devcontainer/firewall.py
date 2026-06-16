@@ -39,15 +39,12 @@ def parse_allowlist(path: Path) -> list[tuple[str, int]]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        if m := re.fullmatch(r"(\*\.)?([A-Za-z0-9.-]+)/(\d{1,2})", line):
-            wildcard = m.group(1)
-            domain   = m.group(2)
-            prefix   = int(m.group(3))
-            if prefix > 32:
+        if m := re.fullmatch(r"([A-Za-z0-9.-]+)/(\d{1,2})", line):
+            domain = m.group(1)
+            prefix = int(m.group(2))
+            if not (1 <= prefix <= 32):
                 print(f"ERROR: Invalid prefix length in: {line}", file=sys.stderr)
                 sys.exit(1)
-            if wildcard:
-                domain = "probe." + domain
             entries.append((domain, prefix))
         else:
             print(f"ERROR: Invalid entry (expected domain/prefix): {line}", file=sys.stderr)
@@ -85,12 +82,14 @@ def build_ipset(allowlist_path: Path) -> None:
 
 
 def build_iptables() -> None:
-    host_ip = run("ip route | grep default | cut -d' ' -f3").stdout.strip()
-    if not host_ip:
+    route_tokens = run("ip route show default").stdout.split()
+    try:
+        host_ip = route_tokens[route_tokens.index("via") + 1]
+    except (ValueError, IndexError):
         print("ERROR: Failed to detect host IP", file=sys.stderr)
         sys.exit(1)
 
-    run(f"iptables -N {CHAIN} 2>/dev/null || true", check=False)
+    run(f"iptables -N {CHAIN}", check=False)
     run(f"iptables -F {CHAIN}")
 
     for rule in [
@@ -110,6 +109,24 @@ def build_iptables() -> None:
     while run(f"iptables -C OUTPUT -j {CHAIN}", check=False).returncode == 0:
         run(f"iptables -D OUTPUT -j {CHAIN}")
     run(f"iptables -I OUTPUT 1 -j {CHAIN}")
+
+
+def build_ip6tables() -> None:
+    run(f"ip6tables -N {CHAIN}", check=False)
+    run(f"ip6tables -F {CHAIN}")
+
+    for rule in [
+        f"-A {CHAIN} -o lo -j ACCEPT",
+        f"-A {CHAIN} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
+        f"-A {CHAIN} -p udp --dport 53 -j ACCEPT",
+        f"-A {CHAIN} -p tcp --dport 53 -j ACCEPT",
+        f"-A {CHAIN} -j REJECT --reject-with icmp6-adm-prohibited",
+    ]:
+        run(f"ip6tables {rule}")
+
+    while run(f"ip6tables -C OUTPUT -j {CHAIN}", check=False).returncode == 0:
+        run(f"ip6tables -D OUTPUT -j {CHAIN}")
+    run(f"ip6tables -I OUTPUT 1 -j {CHAIN}")
 
 
 def verify() -> None:
@@ -133,4 +150,5 @@ if __name__ == "__main__":
 
     build_ipset(allowlist_path)
     build_iptables()
+    build_ip6tables()
     verify()

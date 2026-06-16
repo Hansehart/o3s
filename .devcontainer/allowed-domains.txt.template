@@ -20,7 +20,7 @@ pypi.org/32
 # VS Code
 marketplace.visualstudio.com/32
 update.code.visualstudio.com/32
-*.gallerycdn.vsassets.io/24
+ms-azuretools.gallerycdn.vsassets.io/32
 vscode.blob.core.windows.net/32
 
 # Custom
