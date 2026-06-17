@@ -3,7 +3,7 @@ set -e
 
 # Add VS Code remote CLI to PATH and IPC socket (not available by default in postAttachCommand)
 PATH="$PATH:$(find /vscode -name "remote-cli" -type d 2>/dev/null | head -1)"
-export VSCODE_IPC_HOOK_CLI=$(ls /tmp/vscode-ipc-*.sock 2>/dev/null | head -1)
+export VSCODE_IPC_HOOK_CLI=$(ls -t /tmp/vscode-ipc-*.sock 2>/dev/null | head -1)
 
 # Source user config
 if [ -f .devcontainer/.env ]; then
