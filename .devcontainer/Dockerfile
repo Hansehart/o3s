@@ -45,6 +45,7 @@ USER codespace
 # Python Package Manager
 ARG INSTALL_UV=false
 RUN if [ "$INSTALL_UV" = "true" ]; then curl -LsSf https://astral.sh/uv/install.sh | sh; fi
+
 # Claude Code CLI
 ARG INSTALL_CLAUDE=true
 RUN if [ "$INSTALL_CLAUDE" = "true" ]; then curl -fsSL https://claude.ai/install.sh | bash; fi
