@@ -57,13 +57,29 @@ A plug-and-play dev container for open-source development - built for AI agents,
 <details>
 <summary>Container Startup Order</summary>
 
-| Step | Purpose | Command | User | User determined by | When |
-|---|---|---|---|---|---|
-| `initializeCommand` | Copy templates to editable files | `commands/initialize.sh` | host user | host OS | before container starts |
-| container start | Keep container alive | `sleep infinity` | codespace | `USER` in `Dockerfile` | container boot |
-| `postStartCommand` | Start Docker daemon, configure firewall, start cron | `commands/post-start.sh` | codespace + root | `remoteUser` + `sudo` | every start |
-| VS Code connects | - | - | codespace | `remoteUser` in `devcontainer.json` | after postStartCommand |
-| `postAttachCommand` | Install optional VS Code extensions from `.env` | `commands/post-attach.sh` | codespace | `remoteUser` | after VS Code attaches |
+Two containers come up in order: the **gateway** boots and becomes healthy first, then the **dev container** starts and routes its traffic through it.
+
+**Gateway container** (`o3s-gateway`): the egress firewall.
+
+| Step | Purpose | Command | User | User determined by |
+|---|---|---|---|---|
+| `initializeCommand` | - | - | - | - |
+| container start | Build the firewall rules and start dnsmasq | gateway/entrypoint.sh | root | - |
+| health check | Signal ready once it resolves an allow-listed host and reaches it on 443 | gateway/healthcheck.sh | root | - |
+| `postStartCommand` | - | - | - | - |
+| connect | - | - | - | - |
+| `postAttachCommand` | - | - | - | - |
+
+**Dev container** (`o3s`): where you work.
+
+| Step | Purpose | Command | User | User determined by |
+|---|---|---|---|---|
+| `initializeCommand` | Copy templates to editable files on the host before either container starts | commands/initialize.sh | host user | - |
+| container start | Route egress through the gateway, then keep the container alive | `ip route replace`, `sleep infinity` | codespace | `USER` in `Dockerfile` |
+| health check | - | - | - | - |
+| `postStartCommand` | Start the Docker daemon and verify egress through the gateway | commands/post-start.sh | codespace + root | `remoteUser` in `devcontainer.json` |
+| connect | Attach the editor | - | codespace | `remoteUser` in `devcontainer.json` |
+| `postAttachCommand` | Install optional VS Code extensions from `.env` | commands/post-attach.sh | codespace | `remoteUser` in `devcontainer.json` |
 
 </details>
 
@@ -76,6 +92,19 @@ A plug-and-play dev container for open-source development - built for AI agents,
 | `/home/codespace/projects` | Docker volume | ✅ |
 
 ⚠️ Deleting the Docker volume will permanently destroy `/home/codespace/projects`.
+
+</details>
+
+<details>
+<summary>Egress Firewall</summary>
+
+Outbound traffic is filtered by a separate **gateway container** (`.devcontainer/gateway`). The dev container sits on a private Docker network (`cage`) that has **no host NAT of its own**, so the only working path to the internet is the gateway - a packet sent any other way leaves with a private source address and dies upstream. Even with root and `NET_ADMIN` (which Docker-in-Docker requires), nothing in o3s can manufacture its own egress: the host will not NAT the cage subnet, and the rules that enforce the allowlist live in the gateway's own network namespace, which the dev container cannot touch. So it reaches only the hosts on the allowlist.
+
+The gateway runs `dnsmasq`, which resolves the allow-listed domains and adds their **current** IPs to an `ipset` as they are looked up, so the allowlist tracks IP changes on its own. `iptables` then permits those IPs and default-denies the rest.
+
+- **Allow a host over HTTPS (port 443)**: add its domain to `.devcontainer/allowed-domains.txt` (one per line; subdomains are covered automatically).
+- **Allow a host over SSH (port 22)**: also add it to `.devcontainer/allowed-ssh.txt` (one per line).
+- Apply changes with: `docker restart o3s-gateway`.
 
 </details>
 
@@ -168,6 +197,6 @@ ln -sf $TARGET $VENV/python3
 ln -sf $TARGET $VENV/python3.13
 ```
 
-No packages are affected — only the interpreter symlinks are updated. The packages in `.venv/lib/` survive rebuilds as they live in the Docker volume.
+No packages are affected, only the interpreter symlinks are updated. The packages in `.venv/lib/` survive rebuilds as they live in the Docker volume.
 
 </details>

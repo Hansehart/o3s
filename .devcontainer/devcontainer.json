@@ -14,9 +14,9 @@
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/codespace/o3s",
 
-    // Copy .env and allowed-domains.txt from templates if they don't exist yet
+    // Seed .env and the allowlist files from their templates if they don't exist yet
     "initializeCommand": "bash .devcontainer/commands/initialize.sh",
-    // Start docker daemon, set up firewall, and start cron on every container start
+    // Start docker daemon and route egress through the gateway on every container start
     "postStartCommand": "bash .devcontainer/commands/post-start.sh",
     // Install extensions after VS Code attaches
     "postAttachCommand": "bash .devcontainer/commands/post-attach.sh",
