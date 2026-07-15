@@ -1,7 +1,47 @@
 # Stack name
 name: o3s
+
+# Cage network identity
+x-cage-subnet: &cage_subnet 10.10.0.0/24
+x-gateway-ip: &gateway_ip 10.10.0.2
+
 # Apps deployed by stack
 services:
+  # Sole path to the internet for the dev container.
+  gateway:
+    build:
+      context: ./gateway
+    image: o3s-gateway:latest
+    container_name: o3s-gateway
+    # Required to manage iptables/ipset and route/NAT the cage network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv4.ip_forward=1
+    # Cage identity: the gateway locates its cage/egress interfaces from this
+    environment:
+      GW_CAGE_IP: *gateway_ip
+    # Allowlists are the single source of truth, read-only to the gateway
+    volumes:
+      - ./allowed-domains.txt:/config/allowed-domains.txt:ro
+      - ./allowed-ssh.txt:/config/allowed-ssh.txt:ro
+    networks:
+      cage:
+        ipv4_address: *gateway_ip
+      egress:
+    restart: unless-stopped
+    healthcheck:
+      # Resolve an allow-listed host through dnsmasq and open TCP:443 (DNS would pass)
+      test: ["CMD", "healthcheck.sh"]
+      # Probe fast during startup so the dev container's service_healthy gate clears in seconds
+      # Once healthy, re-check rarely
+      start_interval: 3s
+      start_period: 30s
+      interval: 10m
+      timeout: 5s
+      retries: 3
+
   o3s:
     build:
       context: .
@@ -14,13 +54,23 @@ services:
         INSTALL_UV: ${INSTALL_UV:-false}
     image: o3s:latest
     container_name: o3s
-    environment: # If tools are missing they are silently ignored
-      - CODEX_HOME=/home/codespace/config/codex
-      - CLAUDE_CONFIG_DIR=/home/codespace/config/claude
-      - UV_PYTHON_INSTALL_DIR=/home/codespace/projects/.uv/python
+    environment: 
+      # Egress firewall gateway
+      GATEWAY_IP: *gateway_ip
+
+      # Codex
+      CODEX_HOME: /home/codespace/config/codex
+
+      # Claude
+      CLAUDE_CONFIG_DIR: /home/codespace/config/claude
       # Disable unneccesary claude network traffic
-      - CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-      - DISABLE_GROWTHBOOK=1
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      DISABLE_GROWTHBOOK: "1"
+
+      # UV
+      UV_PYTHON_PREFERENCE: only-managed
+      UV_PYTHON_INSTALL_DIR: /home/codespace/projects/.uv/python
+
     env_file: .env
     volumes:
       # Host mount for dynamic changes
@@ -40,18 +90,35 @@ services:
         #    - driver: nvidia
         #      count: all
         #      capabilities: [gpu]
-    # Required for iptables/ipset firewall management
+    # Required by Docker-in-Docker
     cap_add:
       - NET_ADMIN
-      - NET_RAW
-    # Keeps container runnning
-    command: sleep infinity
+    # Route egress through the gateway at container start and  keep the container alive.
+    command: bash -c 'sudo ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
+    # Its sole exit is the gateway
     networks:
-      - o3s
+      - cage
+    # Wait until the gateway is routing before this container starts
+    depends_on:
+      gateway:
+        condition: service_healthy
+    # Resolve through the gateway's dnsmasq (this populates the allowlist)
+    dns:
+      - *gateway_ip
 
 networks:
-  o3s:
-    name: o3s
+  # Only the gateway (which NATs via its own egress interface) can reach the internet
+  cage:
+    name: o3s-cage
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+    ipam:
+      config:
+        - subnet: *cage_subnet
+  # Gateway's own path to the internet
+  egress:
+    name: o3s-egress
 
 volumes:
   o3s-config:

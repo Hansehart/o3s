@@ -1,0 +1,4 @@
+# SSH allowlist (hosts reachable over port 22)
+
+github.com
+gitlab.com

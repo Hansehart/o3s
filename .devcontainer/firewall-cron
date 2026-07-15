@@ -1,1 +1,0 @@
-*/10 * * * * root /usr/local/bin/firewall.py /home/codespace/o3s/.devcontainer/allowed-domains.txt > /var/log/firewall-refresh.log 2>&1
