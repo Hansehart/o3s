@@ -6,7 +6,7 @@ sudo /usr/local/share/docker-init.sh
 
 # Probe the first allow-listed host so the check tracks the configured allowlist
 PROBE_HOST="$(grep -vhE '^[[:space:]]*(#|$)' .devcontainer/allowed-domains.txt | awk '{print $1; exit}')"
-if curl -sf --connect-timeout 5 "https://$PROBE_HOST" >/dev/null; then
+if curl -s --connect-timeout 5 -o /dev/null "https://$PROBE_HOST"; then
   echo "[post-start] egress OK: $PROBE_HOST reachable through gateway"
 else
   echo "WARNING: $PROBE_HOST not reachable through gateway" >&2
