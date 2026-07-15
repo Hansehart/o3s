@@ -4,10 +4,8 @@ FROM mcr.microsoft.com/devcontainers/universal
 # Remove Yarn repo if present (fix upstream GPG issues)
 RUN rm -f /etc/apt/sources.list.d/yarn.list || true
 
-# Additional tools (e.g for firewall)
+# Additional tools
 RUN apt-get update && apt-get install -y \
-  cron \
-  ipset \
   ripgrep \
   && rm -rf /var/lib/apt/lists/*
 
@@ -30,17 +28,10 @@ RUN if [ "$INSTALL_LATEX" = "true" ]; then \
   texlive-latex-extra \
   && rm -rf /var/lib/apt/lists/*; fi
 
-# Firewall script (runs at container start)
-COPY firewall.py /usr/local/bin/firewall.py
-RUN chmod 755 /usr/local/bin/firewall.py
-# Cron job for periodic IP refresh
-COPY firewall-cron /etc/cron.d/firewall-refresh
-RUN chmod 644 /etc/cron.d/firewall-refresh
-
 # Switch user
 USER codespace
 # TODO: Harden sudo rights for codespace user (currently NOPASSWD:ALL from base image)
-# sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/share\/ssh-init.sh, \/usr\/local\/bin\/firewall.py/' /etc/sudoers.d/codespace
+# sed -i 's/NOPASSWD:ALL/NOPASSWD: \/usr\/local\/share\/docker-init.sh, \/usr\/local\/share\/ssh-init.sh, \/sbin\/ip/' /etc/sudoers.d/codespace
 
 # Python Package Manager
 ARG INSTALL_UV=false

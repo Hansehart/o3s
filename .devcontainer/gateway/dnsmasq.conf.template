@@ -1,0 +1,25 @@
+# Base dnsmasq config for the egress gateway.
+
+# Serve DNS to the cage network
+listen-address=__GW_CAGE_IP__
+# Also serve loopback so the container healthcheck can query dnsmasq
+listen-address=127.0.0.1
+# Bind only the listed addresses, not every interface
+bind-interfaces
+
+# Do not read /etc/resolv.conf for upstream servers
+no-resolv
+# Do not read /etc/hosts
+no-hosts
+# Forward all other queries to Docker's embedded resolver
+server=__UPSTREAM_DNS__
+
+# Never forward unqualified names (no dot) upstream
+domain-needed
+# Never forward reverse lookups for private IP ranges upstream
+bogus-priv
+
+# Cache up to 1000 resolved names
+cache-size=1000
+
+# generated ipset= allowlist lines are appended below by entrypoint.sh

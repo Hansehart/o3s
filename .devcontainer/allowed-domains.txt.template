@@ -1,26 +1,30 @@
-# Firewall allowlist — add your project domains below
+# HTTPS allowlist (hosts reachable over port 443)
+
+# GitHub
+github.com
+githubusercontent.com
 
 # AI providers
-api.anthropic.com/32
-chatgpt.com/32
-auth.openai.com/32
-api.openai.com/32
+api.anthropic.com
+chatgpt.com
+auth.openai.com
+api.openai.com
 
 # Docker
-docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com/32
-auth.docker.io/32
-production.cloudfront.docker.com/32
-registry-1.docker.io/32
+docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com
+auth.docker.io
+production.cloudfront.docker.com
+registry-1.docker.io
 
 # Package managers
-registry.npmjs.org/32
-files.pythonhosted.org/32
-pypi.org/32
+registry.npmjs.org
+files.pythonhosted.org
+pypi.org
 
 # VS Code
-marketplace.visualstudio.com/32
-update.code.visualstudio.com/32
-ms-azuretools.gallerycdn.vsassets.io/32
-vscode.blob.core.windows.net/32
+marketplace.visualstudio.com
+update.code.visualstudio.com
+ms-azuretools.gallerycdn.vsassets.io
+vscode.blob.core.windows.net
 
 # Custom
