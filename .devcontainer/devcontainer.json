@@ -9,17 +9,30 @@
     // Which container from compose should be entered
     "service": "o3s",
 
-    // Non-root user VS Code connects as (docker and firewall still run via sudo)
-    "remoteUser": "codespace",
+    // Additional software layered onto the o3s image.
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker": {
+            // Docker CE
+            "moby": false
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube": {},
+
+        "./features/claude-code": {
+            "version": "stable"
+        },
+        "./features/chrome": {},
+        "./features/latex": {}
+    },
+
+    // Non-root user VS Code connects as
+    "remoteUser": "ubuntu",
     // Which folder is the default inside the dev container
-    "workspaceFolder": "/home/codespace/o3s",
+    "workspaceFolder": "/home/ubuntu/o3s",
 
     // Seed .env and the allowlist files from their templates if they don't exist yet
-    "initializeCommand": "bash .devcontainer/commands/initialize.sh",
+    "initializeCommand": "bash .devcontainer/hooks/initialize.sh",
     // Start docker daemon and route egress through the gateway on every container start
-    "postStartCommand": "bash .devcontainer/commands/post-start.sh",
-    // Install extensions after VS Code attaches
-    "postAttachCommand": "bash .devcontainer/commands/post-attach.sh",
+    "postStartCommand": "bash .devcontainer/hooks/post-start.sh",
 
     // VSCode settings
     "customizations": {

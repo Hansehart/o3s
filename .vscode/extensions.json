@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "james-yu.latex-workshop",
+    "ms-azuretools.vscode-containers",
+    "ms-python.mypy-type-checker",
+    "ms-python.python",
+    "ms-toolsai.datawrangler",
+    "ms-toolsai.jupyter"
+  ]
+}

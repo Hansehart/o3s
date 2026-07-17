@@ -100,11 +100,20 @@ Two containers come up in order: the **gateway** boots and becomes healthy first
 
 Outbound traffic is filtered by a separate **gateway container** (`.devcontainer/gateway`). The dev container sits on a private Docker network (`cage`) that has **no host NAT of its own**, so the only working path to the internet is the gateway - a packet sent any other way leaves with a private source address and dies upstream. Even with root and `NET_ADMIN` (which Docker-in-Docker requires), nothing in o3s can manufacture its own egress: the host will not NAT the cage subnet, and the rules that enforce the allowlist live in the gateway's own network namespace, which the dev container cannot touch. So it reaches only the hosts on the allowlist.
 
-The gateway runs `dnsmasq`, which resolves the allow-listed domains and adds their **current** IPs to an `ipset` as they are looked up, so the allowlist tracks IP changes on its own. `iptables` then permits those IPs and default-denies the rest.
+The gateway runs `dnsmasq`, which resolves the allow-listed domains and adds their **current** IPs to an `ipset` as they are looked up, so the allowlist tracks IP changes on its own. Static IPs and CIDRs are added to the same sets directly. `iptables` then permits those addresses on their declared ports and default-denies the rest.
 
-- **Allow a host over HTTPS (port 443)**: add its domain to `.devcontainer/allowed-domains.txt` (one per line; subdomains are covered automatically).
-- **Allow a host over SSH (port 22)**: also add it to `.devcontainer/allowed-ssh.txt` (one per line).
-- Apply changes with: `docker restart o3s-gateway`.
+Add entries to `.devcontainer/allowlist.txt`, one per line as `address port...`:
+
+- `address` — a domain (subdomains covered automatically), an IPv4 host, or an IPv4 CIDR.
+- `port...` — one or more TCP ports the address may be reached on. At least one is required; there is no default.
+
+```
+github.com  443 22    # HTTPS + SSH
+pypi.org    443
+10.8.0.0/24 443       # a static subnet on HTTPS
+```
+
+Apply changes with: `docker restart o3s-gateway`.
 
 </details>
 
@@ -171,32 +180,8 @@ Enable in `.devcontainer/.env` before rebuilding:
    - **Selectable tools**: `INSTALL_CHROME`, `INSTALL_CLAUDE`, `INSTALL_CODEX`, `INSTALL_LATEX`, `INSTALL_UV`
    - **Selectable extensions**: `EXT_COLAB`, `EXT_CONTAINERS`, `EXT_DATAWRANGLER`, `EXT_JUPYTER`, `EXT_LATEX`, `EXT_PYTHON`
 
-3. **`.devcontainer/allowed-domains.txt`** - copied from `allowed-domains.txt.template` on first start. Lists domains the firewall permits outbound HTTPS access to. Add any additional hosts your projects need.
+3. **`.devcontainer/allowlist.txt`** - copied from `allowlist.txt.template` on first start. Lists the addresses (domains, IPs, CIDRs) and ports the firewall permits outbound access to, one `address port...` per line. Add any additional hosts your projects need.
 
 </details>
 
 <details>
-<summary>Python (uv)</summary>
-
-VS Code's Python environment scanner (`pet`) cannot follow symlinked directories and will label uv-created venvs as **"Python executable is a broken symlink"** even though they work fine. This happens because uv points `.venv/bin/python` at a directory alias (`cpython-3.13-linux-x86_64-gnu`) that is itself a symlink.
-
-Additionally, uv downloads its managed Python into `~/.local/share/uv/python/` which lives in the user home layer. After a **container rebuild** this layer is wiped, breaking all venv symlinks.
-
-**Fix after a rebuild**: re-download uv's managed Python, then repoint the symlinks:
-
-```bash
-# 1. re-download uv's managed Python
-uv python install <version>
-
-# 2. repoint symlinks for each project
-TARGET=/home/codespace/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/bin/python3.13
-VENV=/home/codespace/projects/<project>/.venv/bin
-
-ln -sf $TARGET $VENV/python
-ln -sf $TARGET $VENV/python3
-ln -sf $TARGET $VENV/python3.13
-```
-
-No packages are affected, only the interpreter symlinks are updated. The packages in `.venv/lib/` survive rebuilds as they live in the Docker volume.
-
-</details>

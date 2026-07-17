@@ -22,10 +22,9 @@ services:
     # Cage identity: the gateway locates its cage/egress interfaces from this
     environment:
       GW_CAGE_IP: *gateway_ip
-    # Allowlists are the single source of truth, read-only to the gateway
+    # The allowlist is the single source of truth, read-only to the gateway
     volumes:
-      - ./allowed-domains.txt:/config/allowed-domains.txt:ro
-      - ./allowed-ssh.txt:/config/allowed-ssh.txt:ro
+      - ./config/allowlist.txt:/config/allowlist.txt:ro
     networks:
       cage:
         ipv4_address: *gateway_ip
@@ -44,41 +43,32 @@ services:
 
   o3s:
     build:
-      context: .
+      context: ./workspace
       dockerfile: Dockerfile
-      args:
-        INSTALL_CHROME: ${INSTALL_CHROME:-false}
-        INSTALL_CLAUDE: ${INSTALL_CLAUDE:-false}
-        INSTALL_CODEX: ${INSTALL_CODEX:-false}
-        INSTALL_LATEX: ${INSTALL_LATEX:-false}
-        INSTALL_UV: ${INSTALL_UV:-false}
     image: o3s:latest
     container_name: o3s
-    environment: 
+    environment:
       # Egress firewall gateway
       GATEWAY_IP: *gateway_ip
 
-      # Codex
-      CODEX_HOME: /home/codespace/config/codex
-
       # Claude
-      CLAUDE_CONFIG_DIR: /home/codespace/config/claude
+      CLAUDE_CONFIG_DIR: /home/ubuntu/config/claude
       # Disable unneccesary claude network traffic
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
       DISABLE_GROWTHBOOK: "1"
 
-      # UV
-      UV_PYTHON_PREFERENCE: only-managed
-      UV_PYTHON_INSTALL_DIR: /home/codespace/projects/.uv/python
-
     env_file: .env
     volumes:
       # Host mount for dynamic changes
-      - ../:/home/codespace/o3s
+      - ../:/home/ubuntu/o3s
       # Configuration for tools
-      - o3s-config:/home/codespace/config
+      - o3s-config:/home/ubuntu/config
       # Volume mount for project to work with across sessions
-      - o3s-data:/home/codespace/projects
+      - o3s-projects:/home/ubuntu/projects
+      # Persist Docker + containerd state across rebuilds; containerd needs
+      # non-overlay storage for its snapshotter (the container rootfs is overlayfs)
+      - o3s-docker:/var/lib/docker
+      - o3s-containerd:/var/lib/containerd
     # Limit ressource usage
     deploy:
       resources:
@@ -123,5 +113,9 @@ networks:
 volumes:
   o3s-config:
     name: o3s-config
-  o3s-data:
-    name: o3s-data
+  o3s-projects:
+    name: o3s-projects
+  o3s-docker:
+    name: o3s-docker
+  o3s-containerd:
+    name: o3s-containerd

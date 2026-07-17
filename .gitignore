@@ -1,5 +1,5 @@
 .env
-allowed-domains.txt
 o3s.code-workspace
+*.crt
+*.key
 *.txt
-.certs/

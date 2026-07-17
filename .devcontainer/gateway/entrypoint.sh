@@ -1,26 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fixed image contract: allowlist mount points and Docker's embedded resolver.
-DOMAINS_FILE=/config/allowed-domains.txt
-SSH_FILE=/config/allowed-ssh.txt
+# Fixed image contract: allowlist mount point and Docker's embedded resolver.
+ALLOWLIST_FILE=/config/allowlist.txt
 UPSTREAM_DNS=127.0.0.11
+
+# Default expiry for dnsmasq-resolved ipset entries (seconds). dnsmasq re-adds an
+# entry on each resolution, refreshing this timer, so an IP only expires once its
+# domain stops being resolved. Static IP/CIDR seeds override this with timeout 0.
+IPSET_TIMEOUT=3600
 
 log() { echo "[gateway] $*"; }
 die() { echo "[gateway] $*" >&2; exit 1; }
 
-# Read one or more allowlist files and drop noise
-domains_of() {
-  grep -vhE '^[[:space:]]*(#|$)' "$@" | awk '{print $1}' | sort -u
-}
+# An address is static when it is an IPv4 host or CIDR; everything else is a domain.
+is_ipv4() { [[ "$1" =~ ^[0-9]+(\.[0-9]+){3}(/[0-9]+)?$ ]]; }
 
 # First (link-scope) subnet on an interface, e.g. 10.10.0.0/24
 link_subnet() {
   ip route show dev "$1" scope link | awk '{print $1; exit}'
 }
 
-[ -f "$DOMAINS_FILE" ] || die "allowlist not found: $DOMAINS_FILE"
-[ -f "$SSH_FILE" ]     || die "ssh allowlist not found: $SSH_FILE"
+[ -f "$ALLOWLIST_FILE" ] || die "allowlist not found: $ALLOWLIST_FILE"
 
 # 1. locate the cage vs egress interfaces from the one hint docker-compose gives:
 # GW_CAGE_IP, the gateway's own IP on the cage. Interface names (eth0/eth1) follow
@@ -52,12 +53,51 @@ ip route replace default via "$EGRESS_GW" dev "$EGRESS_IF"
 
 log "egress=$EGRESS_IF (gw $EGRESS_GW)  cage=$CAGE_IF ($CAGE_SUBNET, gw $GW_CAGE_IP)"
 
-# 2. ipsets: allowed-domains (port 443) and allowed-ssh (port 22).
-# dnsmasq fills these with the current IP of each allow-listed domain as it is
-# resolved, so IP rotation is handled automatically.
-# Created if absent and kept across runs so resolved IPs persist.
-ipset create allowed-domains hash:ip -exist
-ipset create allowed-ssh     hash:ip -exist
+# 2. parse the allowlist: one "address port [port...]" entry per line.
+# Ports are mandatory and explicit - one ipset + FORWARD rule per distinct port.
+# Static IPv4/CIDR addresses are seeded straight into their sets; domains are added
+# by dnsmasq as it resolves them. Inline "# ..." comments are stripped.
+PORTS=""                    # distinct ports across the whole file
+declare -a STATIC_SEEDS=()  # "port address" for each IPv4/CIDR entry
+declare -a DOMAIN_LINES=()  # dnsmasq server=/domain/ + ipset=/domain/allowed-pA,allowed-pB lines per domain
+DOMAIN_COUNT=0              # distinct domains (DOMAIN_LINES holds two entries each)
+
+while read -r addr ports; do
+  [ -n "$addr" ] || continue
+  [ -n "$ports" ] || die "allowlist: '$addr' has no port (format: address port...)"
+  case "$addr" in *:*) die "allowlist: IPv6 unsupported (gateway is IPv4-only): $addr";; esac
+
+  sets=""
+  for p in $ports; do
+    case "$p" in ''|*[!0-9]*) die "allowlist: invalid port '$p' for $addr";; esac
+    { [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || die "allowlist: port out of range '$p' for $addr"
+    case " $PORTS " in *" $p "*) ;; *) PORTS="$PORTS $p";; esac
+    if is_ipv4 "$addr"; then
+      STATIC_SEEDS+=("$p $addr")
+    else
+      sets="${sets:+$sets,}allowed-p$p"
+    fi
+  done
+  # Domains get a per-domain upstream (so they resolve at all now the catch-all is
+  # gone) plus the ipset line that captures their resolved IPs. One server= line per
+  # domain suffices for any number of ports; subdomains are covered automatically.
+  if ! is_ipv4 "$addr"; then
+    DOMAIN_LINES+=("server=/$addr/$UPSTREAM_DNS")
+    DOMAIN_LINES+=("ipset=/$addr/$sets")
+    DOMAIN_COUNT=$((DOMAIN_COUNT + 1))
+  fi
+done < <(grep -vhE '^[[:space:]]*(#|$)' "$ALLOWLIST_FILE" | sed 's/#.*//')
+
+[ -n "$PORTS" ] || die "allowlist is empty: $ALLOWLIST_FILE"
+
+# One ipset per distinct port. hash:net holds both dnsmasq's resolved host IPs
+# (added as /32) and our static IPs/CIDRs in the same set, so a packet's
+# destination matches whether it is a resolved host or inside an allowed subnet.
+# A default timeout expires stale resolved IPs (CDN rotations, reassigned hosts);
+# dnsmasq refreshes it on each resolution, and static seeds pin timeout 0 below.
+for p in $PORTS; do
+  ipset create "allowed-p$p" hash:net timeout "$IPSET_TIMEOUT" -exist
+done
 
 # 3. routing sysctls
 # ip_forward is enabled by docker-compose (sysctls:); /proc/sys is read-only in
@@ -85,37 +125,40 @@ iptables -A INPUT -s "$CAGE_SUBNET" -p udp --dport 53 -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport 53 -j ACCEPT
 iptables -A INPUT -p icmp -j ACCEPT
 
-# FORWARD: default-deny; only allow-listed destinations on 443/22 leave the cage.
+# FORWARD: default-deny; only allow-listed destinations leave the cage, each on the
+# port(s) its entry declared.
 iptables -F FORWARD
 iptables -P FORWARD DROP
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-iptables -A FORWARD -s "$CAGE_SUBNET" -p tcp -m set --match-set allowed-domains dst --dport 443 -j ACCEPT
-iptables -A FORWARD -s "$CAGE_SUBNET" -p tcp -m set --match-set allowed-ssh     dst --dport 22  -j ACCEPT
+for p in $PORTS; do
+  iptables -A FORWARD -s "$CAGE_SUBNET" -p tcp -m set --match-set "allowed-p$p" dst --dport "$p" -j ACCEPT
+done
 # Fail fast instead of hanging on blocked connections.
 iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 
 # No IPv6 leaves the cage.
 ip6tables -P FORWARD DROP 2>/dev/null || true
 
-# 5. generate dnsmasq allowlist
+# Seed static IP/CIDR entries directly (domains are populated by dnsmasq on resolve).
+if [ ${#STATIC_SEEDS[@]} -gt 0 ]; then
+  for seed in "${STATIC_SEEDS[@]}"; do
+    read -r sp saddr <<<"$seed"
+    # timeout 0 = never expire: nothing re-adds static entries to refresh them.
+    ipset add -exist "allowed-p$sp" "$saddr" timeout 0
+  done
+fi
+
+# 5. generate dnsmasq config: base template + one ipset= line per domain, joining
+# all of that domain's port-sets (dnsmasq adds a resolved IP to every listed set).
 CONF=/etc/dnsmasq.conf
 sed -e "s#__GW_CAGE_IP__#${GW_CAGE_IP}#g" \
-    -e "s#__UPSTREAM_DNS__#${UPSTREAM_DNS}#g" \
     /etc/dnsmasq.conf.template > "$CONF"
 
-SSH_DOMAINS="$(domains_of "$SSH_FILE" || true)"
-HTTPS_ONLY="$(comm -23 <(domains_of "$DOMAINS_FILE" || true) <(echo "$SSH_DOMAINS") || true)"
-
-# One ipset= line per domain (dnsmasq has a config line-length limit). SSH hosts
-# go into both sets (443 + 22); everything else into allowed-domains only.
-if [ -n "$SSH_DOMAINS" ]; then
-  sed 's#.*#ipset=/&/allowed-domains,allowed-ssh#' <<<"$SSH_DOMAINS" >> "$CONF"
-fi
-if [ -n "$HTTPS_ONLY" ]; then
-  sed 's#.*#ipset=/&/allowed-domains#' <<<"$HTTPS_ONLY" >> "$CONF"
+if [ ${#DOMAIN_LINES[@]} -gt 0 ]; then
+  printf '%s\n' "${DOMAIN_LINES[@]}" >> "$CONF"
 fi
 
-log "allowlist: $(echo "$HTTPS_ONLY" | grep -c . || true) https-only + $(echo "$SSH_DOMAINS" | grep -c . || true) ssh domains"
+log "allowlist: ${DOMAIN_COUNT} domain(s) + ${#STATIC_SEEDS[@]} static entry(ies) on port(s)${PORTS}"
 log "starting dnsmasq on ${GW_CAGE_IP}:53 (upstream ${UPSTREAM_DNS})"
 
 # 6. run dnsmasq as PID 1
