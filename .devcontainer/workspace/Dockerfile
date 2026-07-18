@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       ripgrep \
+      openssh-client \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /home/ubuntu/config /home/ubuntu/projects \
