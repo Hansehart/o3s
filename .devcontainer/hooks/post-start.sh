@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# Start the Docker-in-Docker daemon.
-sudo /usr/local/share/docker-init.sh
 
 # Probe the first allow-listed host so the check tracks the configured allowlist
 PROBE_HOST="$(grep -vE '^[[:space:]]*#' .devcontainer/config/allowlist.txt | awk 'NF{print $1; exit}')"

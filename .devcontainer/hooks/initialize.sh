@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # Seed the editable config files from their templates on first run
 cp -n .devcontainer/.env.template .devcontainer/.env

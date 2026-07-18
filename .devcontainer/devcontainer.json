@@ -12,15 +12,23 @@
     // Additional software layered onto the o3s image.
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker": {
+            "version": "stable",
             // Docker CE
             "moby": false
         },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube": {},
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube": {
+            // kubectl
+            "version": "stable",
+            "helm": "latest",
+            "minikube": "stable"
+        },
 
         "./features/claude-code": {
             "version": "stable"
         },
-        "./features/chrome": {},
+        "./features/chrome": {
+            "version": "stable"
+        },
         "./features/latex": {}
     },
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # Install the LaTeX toolchain
 apt-get update && apt-get install -y --no-install-recommends \

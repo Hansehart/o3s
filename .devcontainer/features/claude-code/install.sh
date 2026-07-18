@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # VERSION comes from the feature options: a channel (latest|stable) or exact version.
 

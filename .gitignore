@@ -1,4 +1,5 @@
 .env
+devcontainer-lock.json
 o3s.code-workspace
 *.crt
 *.key
