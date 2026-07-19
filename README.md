@@ -1,5 +1,5 @@
 # O3S - Open Source Software Suite
-A plug-and-play dev container for open-source development - built for AI agents, safe by design.
+A plug-and-play dev container that powers your development - built for AI agents, safe by design.
 
 ![O3S](.github/assets/o3s.png)
 
@@ -49,102 +49,8 @@ A plug-and-play dev container for open-source development - built for AI agents,
    - Your projects live in `/home/ubuntu/projects`
    - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and use `File: Open Folder` to navigate there
 
-> [!TIP]
+> [!WARNING]
 > Work inside `/home/ubuntu/projects` - your data will persist across sessions. Only work outside of it if you know what you are doing.
 
-## Advanced
-
-<details>
-<summary>Container Startup Order</summary>
-
-Two containers come up in order: the **gateway** boots and becomes healthy first, then the **dev container** starts and routes its traffic through it.
-
-**Gateway container** (`o3s-gateway`): the egress firewall.
-
-| Step | Purpose | Command | User | User determined by |
-|---|---|---|---|---|
-| `initializeCommand` | - | - | - | - |
-| container start | Build the firewall rules and start dnsmasq | gateway/entrypoint.sh | root | - |
-| health check | Signal ready once it resolves an allow-listed host and reaches it on 443 | gateway/healthcheck.sh | root | - |
-| `postStartCommand` | - | - | - | - |
-| connect | - | - | - | - |
-
-**Dev container** (`o3s`): where you work.
-
-| Step | Purpose | Command | User | User determined by |
-|---|---|---|---|---|
-| `initializeCommand` | Copy templates to editable files on the host before either container starts | hooks/initialize.sh | host user | - |
-| container start | Route egress through the gateway, then keep the container alive | `ip route replace`, `sleep infinity` | ubuntu | `USER` in `Dockerfile` |
-| health check | - | - | - | - |
-| `postStartCommand` | Verify egress reaches the gateway | hooks/post-start.sh | ubuntu | `remoteUser` in `devcontainer.json` |
-| connect | Attach the editor | - | ubuntu | `remoteUser` in `devcontainer.json` |
-
-</details>
-
-<details>
-<summary>Data Persistence</summary>
-
-| Folder | Type | Survives Rebuild |
-|--------|------|-----------------|
-| `/home/ubuntu/o3s` | Host mount | ✅ |
-| `/home/ubuntu/projects` | Docker volume | ✅ |
-
-⚠️ Deleting the Docker volume will permanently destroy `/home/ubuntu/projects`.
-
-</details>
-
-<details>
-<summary>Egress Firewall</summary>
-
-Outbound traffic is filtered by a separate **gateway container** (`.devcontainer/gateway`). The dev container sits on a private Docker network (`cage`) that has **no host NAT of its own**, so the only working path to the internet is the gateway - a packet sent any other way leaves with a private source address and dies upstream. Even with root and `NET_ADMIN` (which Docker-in-Docker requires), nothing in o3s can manufacture its own egress: the host will not NAT the cage subnet, and the rules that enforce the allowlist live in the gateway's own network namespace, which the dev container cannot touch. So it reaches only the hosts on the allowlist.
-
-The gateway runs `dnsmasq`, which resolves the allow-listed domains and adds their **current** IPs to an `ipset` as they are looked up, so the allowlist tracks IP changes on its own. Static IPs and CIDRs are added to the same sets directly. `iptables` then permits those addresses on their declared ports and default-denies the rest.
-
-Add entries to `.devcontainer/config/allowlist.txt`, one per line as `address port...`:
-
-- `address` — a domain (subdomains covered automatically), an IPv4 host, or an IPv4 CIDR.
-- `port...` — one or more TCP ports the address may be reached on. At least one is required; there is no default.
-
-```
-github.com  443 22    # HTTPS + SSH
-pypi.org    443
-10.8.0.0/24 443       # a static subnet on HTTPS
-```
-
-Apply changes with: `docker restart o3s-gateway`.
-
-</details>
-
-<details>
-<summary>GPU Support</summary>
-
-NVIDIA GPU passthrough requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the Docker host. On WSL2, install it inside WSL2 (not Windows) after confirming `nvidia-smi` works on each layer.
-
-The `docker-compose.yml` already includes the GPU reservation block, just uncomment it:
-
-```yaml
-reservations:
-  devices:
-    - driver: nvidia
-      count: all
-      capabilities: [gpu]
-```
-
-</details>
-
-<details>
-<summary>Recommended Customization</summary>
-
-1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:
-   ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "your@email.com"
-   ```
-
-2. **`.devcontainer/.env`** - copied from `.env.template` on first start. Fill in your values:
-   - **Resource limits**: `MEMORY_LIMIT`, `CPU_LIMIT` - cap container resource usage
-   - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
-
-3. **`.devcontainer/config/allowlist.txt`** - copied from `allowlist.txt.template` on first start. Lists the addresses (domains, IPs, CIDRs) and ports the firewall permits outbound access to, one `address port...` per line. Add any additional hosts your projects need.
-
-</details>
+> [!TIP]
+> Checkout the [Wiki](https://github.com/Hansehart/o3s/wiki) for more.
