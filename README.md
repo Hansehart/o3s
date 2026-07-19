@@ -28,6 +28,9 @@ A plug-and-play dev container that powers your development - built for AI agents
   </tr>
 </table>
 
+> [!TIP]
+> Checkout the [Wiki](https://github.com/Hansehart/o3s/wiki) for more capabilities.
+
 ## Getting Started
 
 ### Prerequisites
@@ -51,6 +54,3 @@ A plug-and-play dev container that powers your development - built for AI agents
 
 > [!WARNING]
 > Work inside `/home/ubuntu/projects` - your data will persist across sessions. Only work outside of it if you know what you are doing.
-
-> [!TIP]
-> Checkout the [Wiki](https://github.com/Hansehart/o3s/wiki) for more.
