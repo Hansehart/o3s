@@ -24,7 +24,8 @@
         },
 
         "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
-            "version": "stable"
+            "version": "stable",
+            "configDir": "/home/ubuntu/config/claude"
         },
         "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
             "version": "stable"

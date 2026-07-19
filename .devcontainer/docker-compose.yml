@@ -59,9 +59,9 @@ services:
       # Host mount for dynamic changes
       - ../:/home/ubuntu/o3s
       # Configuration for tools
-      - o3s-config:/home/ubuntu/config
+      - config:/home/ubuntu/config
       # Volume mount for project to work with across sessions
-      - o3s-projects:/home/ubuntu/projects
+      - projects:/home/ubuntu/projects
     # Limit ressource usage
     deploy:
       resources:
@@ -107,7 +107,5 @@ networks:
     name: o3s-egress
 
 volumes:
-  o3s-config:
-    name: o3s-config
-  o3s-projects:
-    name: o3s-projects
+  config:
+  projects:

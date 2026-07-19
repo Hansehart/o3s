@@ -46,11 +46,11 @@ A plug-and-play dev container for open-source development - built for AI agents,
    - The container builds automatically (first time takes a few moments)
 
 3. **Start developing**
-   - Your projects live in `/home/codespace/projects`
+   - Your projects live in `/home/ubuntu/projects`
    - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and use `File: Open Folder` to navigate there
 
 > [!TIP]
-> Work inside `/home/codespace/projects` - your data will persist across sessions. Only work outside of it if you know what you are doing.
+> Work inside `/home/ubuntu/projects` - your data will persist across sessions. Only work outside of it if you know what you are doing.
 
 ## Advanced
 
@@ -68,18 +68,16 @@ Two containers come up in order: the **gateway** boots and becomes healthy first
 | health check | Signal ready once it resolves an allow-listed host and reaches it on 443 | gateway/healthcheck.sh | root | - |
 | `postStartCommand` | - | - | - | - |
 | connect | - | - | - | - |
-| `postAttachCommand` | - | - | - | - |
 
 **Dev container** (`o3s`): where you work.
 
 | Step | Purpose | Command | User | User determined by |
 |---|---|---|---|---|
-| `initializeCommand` | Copy templates to editable files on the host before either container starts | commands/initialize.sh | host user | - |
-| container start | Route egress through the gateway, then keep the container alive | `ip route replace`, `sleep infinity` | codespace | `USER` in `Dockerfile` |
+| `initializeCommand` | Copy templates to editable files on the host before either container starts | hooks/initialize.sh | host user | - |
+| container start | Route egress through the gateway, then keep the container alive | `ip route replace`, `sleep infinity` | ubuntu | `USER` in `Dockerfile` |
 | health check | - | - | - | - |
-| `postStartCommand` | Start the Docker daemon and verify egress through the gateway | commands/post-start.sh | codespace + root | `remoteUser` in `devcontainer.json` |
-| connect | Attach the editor | - | codespace | `remoteUser` in `devcontainer.json` |
-| `postAttachCommand` | Install optional VS Code extensions from `.env` | commands/post-attach.sh | codespace | `remoteUser` in `devcontainer.json` |
+| `postStartCommand` | Verify egress reaches the gateway | hooks/post-start.sh | ubuntu | `remoteUser` in `devcontainer.json` |
+| connect | Attach the editor | - | ubuntu | `remoteUser` in `devcontainer.json` |
 
 </details>
 
@@ -88,10 +86,10 @@ Two containers come up in order: the **gateway** boots and becomes healthy first
 
 | Folder | Type | Survives Rebuild |
 |--------|------|-----------------|
-| `/home/codespace/o3s` | Host mount | ✅ |
-| `/home/codespace/projects` | Docker volume | ✅ |
+| `/home/ubuntu/o3s` | Host mount | ✅ |
+| `/home/ubuntu/projects` | Docker volume | ✅ |
 
-⚠️ Deleting the Docker volume will permanently destroy `/home/codespace/projects`.
+⚠️ Deleting the Docker volume will permanently destroy `/home/ubuntu/projects`.
 
 </details>
 
@@ -102,7 +100,7 @@ Outbound traffic is filtered by a separate **gateway container** (`.devcontainer
 
 The gateway runs `dnsmasq`, which resolves the allow-listed domains and adds their **current** IPs to an `ipset` as they are looked up, so the allowlist tracks IP changes on its own. Static IPs and CIDRs are added to the same sets directly. `iptables` then permits those addresses on their declared ports and default-denies the rest.
 
-Add entries to `.devcontainer/allowlist.txt`, one per line as `address port...`:
+Add entries to `.devcontainer/config/allowlist.txt`, one per line as `address port...`:
 
 - `address` — a domain (subdomains covered automatically), an IPv4 host, or an IPv4 CIDR.
 - `port...` — one or more TCP ports the address may be reached on. At least one is required; there is no default.
@@ -135,37 +133,6 @@ reservations:
 </details>
 
 <details>
-<summary>Selectable Extensions</summary>
-
-Enable in `.devcontainer/.env` before rebuilding:
-
-| Name | `.env` key | Tag | Purpose |
-|------|-----------|-----|---------|
-| Google Colab | `EXT_COLAB` | `google.colab` | Remote notebook execution with GPU support |
-| Containers | `EXT_CONTAINERS` | `ms-azuretools.vscode-containers` | Container orchestration |
-| Data Wrangler | `EXT_DATAWRANGLER` | `ms-toolsai.datawrangler` | Data viewing and manipulation |
-| Jupyter | `EXT_JUPYTER` | `ms-toolsai.jupyter` | Interactive coding notebooks |
-| LaTeX Workshop | `EXT_LATEX` | `james-yu.latex-workshop` | LaTeX editing, preview, and compilation |
-| Python | `EXT_PYTHON` | `ms-python.python` | Python language support and debugging |
-
-</details>
-
-<details>
-<summary>Selectable Tools</summary>
-
-Enable in `.devcontainer/.env` before rebuilding:
-
-| Name | `.env` key | Purpose |
-|------|-----------|---------|
-| Chrome | `INSTALL_CHROME` | Browser MCP |
-| Claude Code | `INSTALL_CLAUDE` | Claude Code CLI |
-| Codex | `INSTALL_CODEX` | Codex CLI |
-| LaTeX | `INSTALL_LATEX` | Paper Writing |
-| uv | `INSTALL_UV` | Python Package Manager |
-
-</details>
-
-<details>
 <summary>Recommended Customization</summary>
 
 1. **Git identity** - the Dev Containers extension forwards your host `~/.gitconfig` into the container automatically. Make sure it exists on your Docker host:
@@ -177,11 +144,7 @@ Enable in `.devcontainer/.env` before rebuilding:
 2. **`.devcontainer/.env`** - copied from `.env.template` on first start. Fill in your values:
    - **Resource limits**: `MEMORY_LIMIT`, `CPU_LIMIT` - cap container resource usage
    - **Provider API keys**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
-   - **Selectable tools**: `INSTALL_CHROME`, `INSTALL_CLAUDE`, `INSTALL_CODEX`, `INSTALL_LATEX`, `INSTALL_UV`
-   - **Selectable extensions**: `EXT_COLAB`, `EXT_CONTAINERS`, `EXT_DATAWRANGLER`, `EXT_JUPYTER`, `EXT_LATEX`, `EXT_PYTHON`
 
-3. **`.devcontainer/allowlist.txt`** - copied from `allowlist.txt.template` on first start. Lists the addresses (domains, IPs, CIDRs) and ports the firewall permits outbound access to, one `address port...` per line. Add any additional hosts your projects need.
+3. **`.devcontainer/config/allowlist.txt`** - copied from `allowlist.txt.template` on first start. Lists the addresses (domains, IPs, CIDRs) and ports the firewall permits outbound access to, one `address port...` per line. Add any additional hosts your projects need.
 
 </details>
-
-<details>

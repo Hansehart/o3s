@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "abandonments:recommended",
+    ":configMigration"
+  ],
+  "timezone": "Europe/Berlin",
+  "labels": ["Renovate"],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "build",
+  "semanticCommitScope": "deps",
+  "pinDigests": true,
+  "minimumReleaseAge": "3 days",
+  "prBodyColumns": ["Package", "Type", "Update", "Change", "Age"],
+  "prBodyDefinitions": {
+    "Age": "{{#if newVersion}}{{{newVersionAgeInDays}}} days{{/if}}"
+  },
+  "vulnerabilityAlerts": {
+    "addLabels": ["Security"]
+  },
+  "packageRules": [
+    {
+      "description": "Own devcontainer features are released together.",
+      "matchManagers": ["devcontainer"],
+      "matchPackageNames": ["ghcr.io/hansehart/devcontainer-features/**"],
+      "groupName": "Hansehart Devcontainer Features"
+    },
+    {
+      "description": "Bundle routine base-image digest refreshes.",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["pin", "digest"],
+      "groupName": "Docker Digests"
+    },
+    {
+      "description": "Surface major bumps for a deliberate review.",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["Breaking"]
+    }
+  ]
+}
