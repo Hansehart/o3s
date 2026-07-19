@@ -21,19 +21,19 @@
   },
   "packageRules": [
     {
-      "description": "Own devcontainer features are released together.",
+      "description": "Group my own devcontainer features so their releases land in a single pull request.",
       "matchManagers": ["devcontainer"],
       "matchPackageNames": ["ghcr.io/hansehart/devcontainer-features/**"],
       "groupName": "Hansehart Devcontainer Features"
     },
     {
-      "description": "Bundle routine base-image digest refreshes.",
+      "description": "Bundle routine base-image digest refreshes into one pull request while keeping version bumps separate.",
       "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["pin", "digest"],
       "groupName": "Docker Digests"
     },
     {
-      "description": "Surface major bumps for a deliberate review.",
+      "description": "Label major updates so they get a deliberate review.",
       "matchUpdateTypes": ["major"],
       "addLabels": ["Breaking"]
     }
