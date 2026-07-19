@@ -1,5 +1,6 @@
 .env
-allowed-domains.txt
+devcontainer-lock.json
 o3s.code-workspace
+*.crt
+*.key
 *.txt
-.certs/

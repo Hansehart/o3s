@@ -17,15 +17,17 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # Nothing is allowed to escalate further
+    security_opt:
+      - no-new-privileges:true
     sysctls:
       - net.ipv4.ip_forward=1
     # Cage identity: the gateway locates its cage/egress interfaces from this
     environment:
       GW_CAGE_IP: *gateway_ip
-    # Allowlists are the single source of truth, read-only to the gateway
+    # The allowlist is the single source of truth, read-only to the gateway
     volumes:
-      - ./allowed-domains.txt:/config/allowed-domains.txt:ro
-      - ./allowed-ssh.txt:/config/allowed-ssh.txt:ro
+      - ./config/allowlist.txt:/config/allowlist.txt:ro
     networks:
       cage:
         ipv4_address: *gateway_ip
@@ -44,41 +46,28 @@ services:
 
   o3s:
     build:
-      context: .
+      context: ./workspace
       dockerfile: Dockerfile
-      args:
-        INSTALL_CHROME: ${INSTALL_CHROME:-false}
-        INSTALL_CLAUDE: ${INSTALL_CLAUDE:-false}
-        INSTALL_CODEX: ${INSTALL_CODEX:-false}
-        INSTALL_LATEX: ${INSTALL_LATEX:-false}
-        INSTALL_UV: ${INSTALL_UV:-false}
     image: o3s:latest
     container_name: o3s
-    environment: 
+    environment:
       # Egress firewall gateway
       GATEWAY_IP: *gateway_ip
 
-      # Codex
-      CODEX_HOME: /home/codespace/config/codex
-
       # Claude
-      CLAUDE_CONFIG_DIR: /home/codespace/config/claude
+      CLAUDE_CONFIG_DIR: /home/ubuntu/config/claude
       # Disable unneccesary claude network traffic
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
       DISABLE_GROWTHBOOK: "1"
 
-      # UV
-      UV_PYTHON_PREFERENCE: only-managed
-      UV_PYTHON_INSTALL_DIR: /home/codespace/projects/.uv/python
-
     env_file: .env
     volumes:
       # Host mount for dynamic changes
-      - ../:/home/codespace/o3s
+      - ../:/home/ubuntu/o3s
       # Configuration for tools
-      - o3s-config:/home/codespace/config
+      - o3s-config:/home/ubuntu/config
       # Volume mount for project to work with across sessions
-      - o3s-data:/home/codespace/projects
+      - o3s-projects:/home/ubuntu/projects
     # Limit ressource usage
     deploy:
       resources:
@@ -93,8 +82,11 @@ services:
     # Required by Docker-in-Docker
     cap_add:
       - NET_ADMIN
-    # Route egress through the gateway at container start and  keep the container alive.
-    command: bash -c 'sudo ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
+    # Nothing is allowed to escalate further
+    security_opt:
+      - no-new-privileges:true
+    # Route egress through the gateway at container start and keep the container alive.
+    command: bash -c 'ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
     # Its sole exit is the gateway
     networks:
       - cage
@@ -123,5 +115,5 @@ networks:
 volumes:
   o3s-config:
     name: o3s-config
-  o3s-data:
-    name: o3s-data
+  o3s-projects:
+    name: o3s-projects

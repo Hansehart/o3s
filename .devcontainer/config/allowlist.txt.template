@@ -1,0 +1,63 @@
+# NAME
+#        allowlist — hosts the o3s egress firewall permits
+#
+# SYNOPSIS
+#        address port...
+#
+# DESCRIPTION
+#        Each non-empty line is one rule granting outbound TCP access to address
+#        on the listed port(s). The gateway default-denies everything else. A '#'
+#        begins a comment; blank lines are ignored.
+#
+#        The operands are:
+#
+#        address
+#               A domain (subdomains are covered automatically), an IPv4 host,
+#               or an IPv4 CIDR block.
+#
+#        port...
+#               One or more TCP ports, separated by spaces. At least one port is
+#               required; there is no default.
+#
+# EXAMPLES
+#        github.com  443 22
+#               Permit HTTPS and SSH to github.com.
+#
+#        pypi.org  443
+#               Permit HTTPS to pypi.org.
+#
+#        10.8.0.0/24  443
+#               Permit HTTPS to every host in the 10.8.0.0/24 subnet.
+#
+# FILES
+#        Edits take effect after: docker restart o3s-gateway
+
+# Git hosting
+github.com 22 443 
+githubusercontent.com 443
+gitlab.com 22
+
+# AI providers
+api.anthropic.com 443
+chatgpt.com 443
+auth.openai.com 443
+api.openai.com 443
+
+# Docker
+docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com 443
+auth.docker.io 443
+production.cloudfront.docker.com 443
+registry-1.docker.io 443
+
+# Package managers
+registry.npmjs.org 443
+files.pythonhosted.org 443
+pypi.org 443
+
+# VS Code
+marketplace.visualstudio.com 443
+update.code.visualstudio.com 443
+ms-azuretools.gallerycdn.vsassets.io 443
+vscode.blob.core.windows.net 443
+
+# Custom
