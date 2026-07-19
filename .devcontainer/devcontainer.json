@@ -23,13 +23,13 @@
             "minikube": "stable"
         },
 
-        "./features/claude-code": {
+        "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
             "version": "stable"
         },
-        "./features/chrome": {
+        "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
             "version": "stable"
         },
-        "./features/latex": {}
+        "ghcr.io/hansehart/devcontainer-features/latex:1": {}
     },
 
     // Non-root user VS Code connects as
