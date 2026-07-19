@@ -17,7 +17,7 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    # Nothing is allowed to escalate further
+    # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
     sysctls:
@@ -34,7 +34,7 @@ services:
       egress:
     restart: unless-stopped
     healthcheck:
-      # Resolve an allow-listed host through dnsmasq and open TCP:443 (DNS would pass)
+      # Resolve an allow-listed host through dnsmasq and open a real connection
       test: ["CMD", "healthcheck.sh"]
       # Probe fast during startup so the dev container's service_healthy gate clears in seconds
       # Once healthy, re-check rarely
@@ -54,20 +54,14 @@ services:
       # Egress firewall gateway
       GATEWAY_IP: *gateway_ip
 
-      # Claude
-      CLAUDE_CONFIG_DIR: /home/ubuntu/config/claude
-      # Disable unneccesary claude network traffic
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
-      DISABLE_GROWTHBOOK: "1"
-
     env_file: .env
     volumes:
       # Host mount for dynamic changes
       - ../:/home/ubuntu/o3s
       # Configuration for tools
-      - o3s-config:/home/ubuntu/config
+      - config:/home/ubuntu/config
       # Volume mount for project to work with across sessions
-      - o3s-projects:/home/ubuntu/projects
+      - projects:/home/ubuntu/projects
     # Limit ressource usage
     deploy:
       resources:
@@ -82,7 +76,7 @@ services:
     # Required by Docker-in-Docker
     cap_add:
       - NET_ADMIN
-    # Nothing is allowed to escalate further
+    # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
     # Route egress through the gateway at container start and keep the container alive.
@@ -113,7 +107,5 @@ networks:
     name: o3s-egress
 
 volumes:
-  o3s-config:
-    name: o3s-config
-  o3s-projects:
-    name: o3s-projects
+  config:
+  projects:
