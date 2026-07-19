@@ -29,7 +29,9 @@
         "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
             "version": "stable"
         },
-        "ghcr.io/hansehart/devcontainer-features/latex:1": {}
+        "ghcr.io/hansehart/devcontainer-features/latex:1": {
+            "version": "2025"
+        }
     },
 
     // Non-root user VS Code connects as
@@ -39,7 +41,7 @@
 
     // Seed .env and the allowlist files from their templates if they don't exist yet
     "initializeCommand": "bash .devcontainer/hooks/initialize.sh",
-    // Start docker daemon and route egress through the gateway on every container start
+    // Probe that egress reaches the gateway on every container start
     "postStartCommand": "bash .devcontainer/hooks/post-start.sh",
 
     // VSCode settings
