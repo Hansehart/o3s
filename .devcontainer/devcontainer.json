@@ -10,8 +10,6 @@
     "service": "o3s",
 
     // Additional software layered onto the o3s image.
-    // Default build: docker + kubectl + claude. Uncomment the optional
-    // features below to enable them.
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:4": {
             "version": "stable",
