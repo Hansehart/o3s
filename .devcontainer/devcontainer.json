@@ -11,28 +11,29 @@
 
     // Additional software layered onto the o3s image.
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker": {
+        "ghcr.io/devcontainers/features/docker-in-docker:4": {
             "version": "stable",
             // Docker CE
             "moby": false
         },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube": {
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
             // kubectl
             "version": "stable",
             "helm": "latest",
             "minikube": "stable"
         },
-
         "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
             "version": "stable",
-            "configDir": "/home/ubuntu/config/claude"
-        },
-        "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
-            "version": "stable"
-        },
-        "ghcr.io/hansehart/devcontainer-features/latex:1": {
-            "version": "2025"
+            "configDir": "/home/ubuntu/config/claude",
+            "disableNonessentialTraffic": true
         }
+        // "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
+        //     "version": "stable"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/latex:1": {
+        //     "version": "2025",
+        //     "scheme": "scheme-full"
+        // }
     },
 
     // Non-root user VS Code connects as
