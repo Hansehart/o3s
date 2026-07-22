@@ -11,8 +11,6 @@ services:
   gateway:
     image: ghcr.io/hansehart/o3s-gateway:latest
     pull_policy: missing
-    build:
-      context: ./gateway
     container_name: o3s-gateway
     # Required to manage iptables/ipset and route/NAT the cage network
     cap_add:
@@ -48,14 +46,10 @@ services:
   o3s:
     image: ghcr.io/hansehart/o3s-base:latest
     pull_policy: missing
-    build:
-      context: ./workspace
-      dockerfile: Dockerfile
     container_name: o3s
     environment:
       # Egress firewall gateway
       GATEWAY_IP: *gateway_ip
-
     env_file: .env
     volumes:
       # Host mount for dynamic changes

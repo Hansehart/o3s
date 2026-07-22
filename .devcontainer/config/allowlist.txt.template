@@ -33,9 +33,10 @@
 #        Edits take effect after: docker restart o3s-gateway
 
 # Git hosting
+ghcr.io 443
 github.com 22 443 
 githubusercontent.com 443
-gitlab.com 22
+gitlab.com 22 443
 
 # AI providers
 api.anthropic.com 443

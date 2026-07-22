@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.devcontainer/workspace/**'
+      - '.devcontainer/base/**'
       - '.devcontainer/gateway/**'
       - '.github/workflows/publish-images.yml'
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - name: o3s-base
-            context: .devcontainer/workspace
+            context: .devcontainer/base
           - name: o3s-gateway
             context: .devcontainer/gateway
     steps:
