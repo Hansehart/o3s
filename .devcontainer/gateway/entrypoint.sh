@@ -113,7 +113,7 @@ iptables -t nat -C POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE 2
   || iptables -t nat -A POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE
 
 # Clamp MSS to path MTU on SYN to avoid TLS stalls through the DinD double-NAT.
-iptables -t mangle -F
+iptables -t mangle -F FORWARD
 iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 
 # INPUT: only DNS (from the cage) + loopback + return traffic reach the gateway.
