@@ -1,6 +1,6 @@
-.env
-devcontainer-lock.json
-o3s.code-workspace
+.devcontainer/.env
+.devcontainer/allowlist.txt
+.devcontainer/devcontainer-lock.json
+.devcontainer/o3s.code-workspace
 *.crt
 *.key
-*.txt

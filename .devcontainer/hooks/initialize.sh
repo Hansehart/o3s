@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Seed the editable config files from their templates on first run
-cp -n .devcontainer/.env.template .devcontainer/.env
-cp -n .devcontainer/config/allowlist.txt.template .devcontainer/config/allowlist.txt
+# Seed the editable config files from templates
+cp -n .devcontainer/templates/.env .devcontainer/.env
+cp -n .devcontainer/templates/allowlist.txt .devcontainer/allowlist.txt
+cp -n .devcontainer/templates/o3s.code-workspace .devcontainer/o3s.code-workspace
