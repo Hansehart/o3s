@@ -3,7 +3,7 @@ set -euo pipefail
 
 
 # Probe the first allow-listed host so the check tracks the configured allowlist
-PROBE_HOST="$(grep -vE '^[[:space:]]*#' .devcontainer/config/allowlist.txt | awk 'NF{print $1; exit}')"
+PROBE_HOST="$(grep -vE '^[[:space:]]*#' .devcontainer/allowlist.txt | awk 'NF{print $1; exit}')"
 if curl -s --connect-timeout 5 -o /dev/null "https://$PROBE_HOST"; then
   echo "[post-start] egress OK: $PROBE_HOST reachable through gateway"
 else

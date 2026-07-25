@@ -26,7 +26,7 @@ services:
       GW_CAGE_IP: *gateway_ip
     # The allowlist is the single source of truth, read-only to the gateway
     volumes:
-      - ./config/allowlist.txt:/config/allowlist.txt:ro
+      - ./allowlist.txt:/config/allowlist.txt:ro
     networks:
       cage:
         ipv4_address: *gateway_ip
