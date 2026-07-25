@@ -56,6 +56,9 @@ registry.npmjs.org 443
 files.pythonhosted.org 443
 pypi.org 443
 
+# TeX Live
+texlive.info 443
+
 # VS Code
 marketplace.visualstudio.com 443
 update.code.visualstudio.com 443
