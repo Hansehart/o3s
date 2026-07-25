@@ -30,6 +30,7 @@
         // },
         // "ghcr.io/hansehart/devcontainer-features/latex:1": {
         //     "version": "2025",
+        //     "stateDir": "/home/ubuntu/features/latex",
         //     "scheme": "scheme-full"
         // },
         // "ghcr.io/hansehart/devcontainer-features/uv:1": {
