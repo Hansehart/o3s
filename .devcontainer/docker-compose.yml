@@ -54,8 +54,8 @@ services:
     volumes:
       # Host mount for dynamic changes
       - ../:/home/ubuntu/o3s
-      # Configuration for tools
-      - config:/home/ubuntu/config
+      # Persistent state for installed features
+      - features:/home/ubuntu/features
       # Volume mount for project to work with across sessions
       - projects:/home/ubuntu/projects
     # Limit ressource usage
@@ -103,5 +103,5 @@ networks:
     name: o3s-egress
 
 volumes:
-  config:
+  features:
   projects:

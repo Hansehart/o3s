@@ -41,6 +41,7 @@ gitlab.com 22 443
 # AI providers
 api.anthropic.com 443
 chatgpt.com 443
+platform.claude.com 443
 auth.openai.com 443
 api.openai.com 443
 
