@@ -3,8 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.devcontainer/base/**'
-      - '.devcontainer/gateway/**'
+      - 'images/**'
       - '.github/workflows/publish-images.yml'
   workflow_dispatch:
 
@@ -19,9 +18,9 @@ jobs:
       matrix:
         include:
           - name: o3s-base
-            context: .devcontainer/base
+            context: images/base
           - name: o3s-gateway
-            context: .devcontainer/gateway
+            context: images/gateway
     steps:
       # check out the repo so the build has the Dockerfiles and gateway scripts
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

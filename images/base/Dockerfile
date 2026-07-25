@@ -12,5 +12,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openssh-client \
   && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /home/ubuntu/config /home/ubuntu/projects \
+RUN mkdir -p /home/ubuntu/features /home/ubuntu/projects \
  && chown -R ubuntu:ubuntu /home/ubuntu
