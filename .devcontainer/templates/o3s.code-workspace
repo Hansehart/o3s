@@ -5,5 +5,7 @@
 			"path": ".."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"git.repositoryScanMaxDepth": 0
+	}
 }
