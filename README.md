@@ -39,4 +39,6 @@ An agent is powerful, production is unforgiving, and the two must never meet. So
 
 > [!TIP]
 > Make it yours in the [Customization guide](https://github.com/Hansehart/o3s/wiki/Customization).
-</content>
+
+> [!WARNING]
+> Only `~/features`, `~/o3s`, and `~/projects` survive a rebuild. Keep your work in `~/projects`.
