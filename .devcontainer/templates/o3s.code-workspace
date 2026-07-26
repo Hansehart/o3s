@@ -1,8 +1,12 @@
 {
 	"folders": [
 		{
+			"name": ".context",
+			"path": "/home/ubuntu/projects/.context"
+		},
+		{
 			"name": "o3s",
-			"path": ".."
+			"path": "/home/ubuntu/o3s"
 		}
 	],
 	"settings": {
