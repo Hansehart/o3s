@@ -10,8 +10,8 @@ UPSTREAM_DNS=127.0.0.11
 # domain stops being resolved. Static IP/CIDR seeds override this with timeout 0.
 IPSET_TIMEOUT=3600
 
-log() { echo "[gateway] $*"; }
-die() { echo "[gateway] $*" >&2; exit 1; }
+log() { echo "[gateway] INFO: $*"; }
+die() { echo "[gateway] ERROR: $*" >&2; exit 1; }
 
 # An address is static when it is an IPv4 host or CIDR; everything else is a domain.
 is_ipv4() { [[ "$1" =~ ^[0-9]+(\.[0-9]+){3}(/[0-9]+)?$ ]]; }
