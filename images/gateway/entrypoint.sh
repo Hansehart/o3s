@@ -24,12 +24,10 @@ link_subnet() {
 
 [ -f "$ALLOWLIST_FILE" ] || die "allowlist not found: $ALLOWLIST_FILE"
 
-# 0. fail closed first: default-deny forwarding before the egress route and NAT come up
-# below, so the cage's traffic is denied from the first instruction on every container
-# start/restart (a fresh netns creates the built-in chains at policy ACCEPT). The rules
-# further down open specific allow-listed traffic on top of this baseline, and the later
-# -F flushes clear rules while this policy persists. OUTPUT stays ACCEPT so the gateway
-# resolves upstream and runs its healthcheck.
+# 0. fail closed first: default-deny forwarding before the route and NAT come up below,
+# so the cage is denied from the first instruction (a fresh netns starts the built-in
+# chains at policy ACCEPT). The rules below open allow-listed traffic on top; OUTPUT
+# stays ACCEPT so the gateway resolves upstream and runs its healthcheck.
 iptables -P FORWARD DROP
 iptables -P INPUT DROP
 ip6tables -P FORWARD DROP 2>/dev/null || true
