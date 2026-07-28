@@ -15,6 +15,7 @@ die() { echo "[gateway] $*" >&2; exit 1; }
 
 # An address is static when it is an IPv4 host or CIDR; everything else is a domain.
 is_ipv4() { [[ "$1" =~ ^[0-9]+(\.[0-9]+){3}(/[0-9]+)?$ ]]; }
+is_domain() { [[ "$1" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]]; }
 
 # First (link-scope) subnet on an interface, e.g. 10.10.0.0/24
 link_subnet() {
@@ -22,6 +23,14 @@ link_subnet() {
 }
 
 [ -f "$ALLOWLIST_FILE" ] || die "allowlist not found: $ALLOWLIST_FILE"
+
+# 0. fail closed first: default-deny forwarding before the route and NAT come up below,
+# so the cage is denied from the first instruction (a fresh netns starts the built-in
+# chains at policy ACCEPT). The rules below open allow-listed traffic on top; OUTPUT
+# stays ACCEPT so the gateway resolves upstream and runs its healthcheck.
+iptables -P FORWARD DROP
+iptables -P INPUT DROP
+ip6tables -P FORWARD DROP 2>/dev/null || true
 
 # 1. locate the cage vs egress interfaces from the one hint docker-compose gives:
 # GW_CAGE_IP, the gateway's own IP on the cage. Interface names (eth0/eth1) follow
@@ -66,6 +75,7 @@ while read -r addr ports; do
   [ -n "$addr" ] || continue
   [ -n "$ports" ] || die "allowlist: '$addr' has no port (format: address port...)"
   case "$addr" in *:*) die "allowlist: IPv6 unsupported (gateway is IPv4-only): $addr";; esac
+  is_ipv4 "$addr" || is_domain "$addr" || die "allowlist: invalid address '$addr'"
 
   sets=""
   for p in $ports; do
@@ -102,7 +112,7 @@ done
 # 3. routing sysctls
 # ip_forward is enabled by docker-compose (sysctls:); /proc/sys is read-only in
 # the container, so we can't set it here — just enforce that it is on. (IPv6
-# forwarding is blocked unconditionally by the ip6tables FORWARD DROP below.)
+# forwarding is blocked unconditionally by the ip6tables FORWARD DROP above.)
 [ "$(cat /proc/sys/net/ipv4/ip_forward)" = 1 ] || die "net.ipv4.ip_forward is not enabled (set it via docker-compose sysctls)"
 
 # 4. firewall
@@ -118,7 +128,6 @@ iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-m
 
 # INPUT: only DNS (from the cage) + loopback + return traffic reach the gateway.
 iptables -F INPUT
-iptables -P INPUT DROP
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p udp --dport 53 -j ACCEPT
@@ -128,16 +137,12 @@ iptables -A INPUT -p icmp -j ACCEPT
 # FORWARD: default-deny; only allow-listed destinations leave the cage, each on the
 # port(s) its entry declared.
 iptables -F FORWARD
-iptables -P FORWARD DROP
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 for p in $PORTS; do
   iptables -A FORWARD -s "$CAGE_SUBNET" -p tcp -m set --match-set "allowed-p$p" dst --dport "$p" -j ACCEPT
 done
 # Fail fast instead of hanging on blocked connections.
 iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
-
-# No IPv6 leaves the cage.
-ip6tables -P FORWARD DROP 2>/dev/null || true
 
 # Seed static IP/CIDR entries directly (domains are populated by dnsmasq on resolve).
 if [ ${#STATIC_SEEDS[@]} -gt 0 ]; then
