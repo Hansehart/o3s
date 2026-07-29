@@ -1,10 +1,9 @@
 {
   "recommendations": [
-    "james-yu.latex-workshop",
-    "ms-azuretools.vscode-containers",
-    "ms-python.mypy-type-checker",
-    "ms-python.python",
+    "google.colab",
     "ms-toolsai.datawrangler",
-    "ms-toolsai.jupyter"
+    "ms-toolsai.jupyter",
+    "ms-toolsai.prompty",
+    "ms-toolsai.tensorboard"
   ]
 }
