@@ -11,6 +11,8 @@ bind-interfaces
 no-resolv
 # Do not read /etc/hosts
 no-hosts
+# IPv4-only gateway: strip AAAA so clients receive only A records and use IPv4
+filter-AAAA
 # No catch-all upstream: only allow-listed domains get a per-domain server= line
 # (appended by entrypoint.sh). Everything else is REFUSED and never forwarded,
 # which closes the DNS exfiltration/tunneling channel.

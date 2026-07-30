@@ -15,6 +15,9 @@
 #               A domain (subdomains are covered automatically), an IPv4 host,
 #               or an IPv4 CIDR block.
 #
+#               The gateway is IPv4-only: IPv6 egress is denied and AAAA records
+#               are stripped from DNS answers, so an IPv6 address is rejected.
+#
 #        port...
 #               One or more TCP ports, separated by spaces. At least one port is
 #               required; there is no default.
