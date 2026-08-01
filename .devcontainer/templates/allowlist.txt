@@ -65,7 +65,8 @@ texlive.info 443
 # VS Code
 marketplace.visualstudio.com 443
 update.code.visualstudio.com 443
-ms-azuretools.gallerycdn.vsassets.io 443
+gallery.vsassets.io 443          
+gallerycdn.vsassets.io 443       
 vscode.blob.core.windows.net 443
 
 # Custom
