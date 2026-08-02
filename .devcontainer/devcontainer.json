@@ -3,12 +3,10 @@
     "name": "o3s",
     // Deal with zombie processes
     "init": true,
-
     // Location of compose file
     "dockerComposeFile": "docker-compose.yml",
     // Which container from compose should be entered
     "service": "o3s",
-
     // Additional software layered onto the o3s image.
     "features": {
         "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
@@ -19,7 +17,7 @@
         "ghcr.io/devcontainers/features/docker-in-docker:4": {
             "version": "stable",
             "moby": false // Docker CE
-        }//,
+        },
         // "ghcr.io/devcontainers/features/github-cli:1": {
         //     "version": "latest"
         // },
@@ -40,19 +38,20 @@
         //     "version": "latest",
         //     "stateDir": "/home/ubuntu/features/uv",
         //     "python": "3.13"
-        // }
+        // },
+        "ghcr.io/hansehart/devcontainer-features/sops:1": {
+            "version": "latest",
+            "stateDir": "/home/ubuntu/features/sops"
+        }
     },
-
     // Non-root user VS Code connects as
     "remoteUser": "ubuntu",
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/ubuntu/o3s",
-
     // Seed .env and the allowlist files from their templates if they don't exist yet
     "initializeCommand": "bash .devcontainer/hooks/initialize.sh",
     // Probe that egress reaches the gateway on every container start
     "postStartCommand": "bash .devcontainer/hooks/post-start.sh",
-
     // VSCode settings
     "customizations": {
         "vscode": {
