@@ -19,6 +19,7 @@ services:
     # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
+    # Forward IPv4 between the cage and egress interfaces so the gateway can route and NAT the cage out
     sysctls:
       - net.ipv4.ip_forward=1
     # Cage identity: the gateway locates its cage/egress interfaces from this
@@ -43,9 +44,42 @@ services:
       timeout: 5s
       retries: 3
 
+  # Injects the upstream API key into inject-host HTTPS so the keys live here, never in the cage.
+  mitmproxy:
+    image: ghcr.io/mitmproxy/mitmproxy:12.2.3@sha256:00b77b5d8804c8ad18cb6caefbf9d5849e895e8986c5ce011f4ae30f4385962f
+    pull_policy: missing
+    container_name: o3s-mitm
+    # Share the gateway's network namespace so its iptables REDIRECT lands here and resolves the original dst
+    network_mode: "service:gateway"
+    # Deny privilege escalation via setuid binaries
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      # CA cert and key the proxy signs intercepted leaf certs with
+      - ${HOME}/.config/o3s/mitmproxy-ca.pem:/home/mitmproxy/.mitmproxy/mitmproxy-ca.pem:ro
+      # Host to token map the addon reads per request to pick each upstream's key
+      - ${HOME}/.config/o3s/inject.env:/home/mitmproxy/.mitmproxy/inject.env:ro
+      # Injection logic (not secret)
+      - ./mitm/inject.py:/addons/inject.py:ro
+    # Transparently intercept the redirected inject-host traffic on the gateway's cage IP
+    command: >
+      mitmdump --mode transparent --showhost
+      --set connection_strategy=lazy
+      --set block_global=false
+      --set onboarding=false
+      --set stream_large_bodies=1m
+      --listen-host 10.10.0.2 --listen-port 8443
+      -s /addons/inject.py
+    restart: unless-stopped
+    # Shares the gateway's network namespace, so it must start after the gateway and restart with it.
+    depends_on:
+      gateway:
+        condition: service_healthy
+
   o3s:
     image: ghcr.io/hansehart/o3s-base:latest
-    pull_policy: always
+    # Dev Containers rebuilds this into a local vsc-o3s-<hash> image so only pull the base when absent
+    pull_policy: missing
     container_name: o3s
     environment:
       # Egress firewall gateway
@@ -58,6 +92,8 @@ services:
       - features:/home/ubuntu/features
       # Volume mount for project to work with across sessions
       - projects:/home/ubuntu/projects
+      # Public proxy CA, folded into the trust store
+      - ${HOME}/.config/o3s/mitmproxy-ca.crt:/usr/local/share/ca-certificates/mitmproxy-ca.crt:ro
     # Limit ressource usage
     deploy:
       resources:
@@ -75,8 +111,8 @@ services:
     # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
-    # Route egress through the gateway at container start and keep the container alive.
-    command: bash -c 'ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
+    # Trust this host's proxy CA, route egress through the gateway, and keep the container alive.
+    command: bash -c 'update-ca-certificates >/dev/null 2>&1 || true; ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
     # Its sole exit is the gateway
     networks:
       - cage
