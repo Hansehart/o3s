@@ -9,7 +9,7 @@ x-gateway-ip: &gateway_ip 10.10.0.2
 services:
   # Sole path to the internet for the dev container.
   gateway:
-    image: ghcr.io/hansehart/o3s-gateway:latest
+    image: ghcr.io/hansehart/o3s-gateway:latest@sha256:dce58d6e1cafc0ca5ff6789869506df2982ab1a11f65cafd2db1dd756e3044fb
     pull_policy: always
     container_name: o3s-gateway
     # Required to manage iptables/ipset and route/NAT the cage network
@@ -44,7 +44,7 @@ services:
       retries: 3
 
   o3s:
-    image: ghcr.io/hansehart/o3s-base:latest
+    image: ghcr.io/hansehart/o3s-base:latest@sha256:fac715a78dcac8ad4511558cc5be81bede2342c55133cfc48d3c49da43a75a1e
     pull_policy: always
     container_name: o3s
     environment:
