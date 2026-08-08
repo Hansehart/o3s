@@ -18,9 +18,6 @@
     </td>
     <td width="5%"></td>
   </tr>
-</table>
-
-<table align="center" width="80%">
   <tr>
     <td width="5%"></td>
     <td width="40%" valign="top" align="center">
