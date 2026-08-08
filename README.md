@@ -30,6 +30,8 @@
   </tr>
 </table>
 
+<p align="center"><em>If you have ever asked yourself one of these, o3s might just be for you:</em></p>
+
 ## Running several projects at once?
 
 o3s holds them in one workspace. Separate repositories, or one repository on several branches as parallel worktrees, each with its own working tree. Work on many things at once, by hand or with agents, without any of them colliding, all under a single source-control view.
