@@ -2,6 +2,8 @@
   <img src=".github/assets/logo.png" alt="o3s logo" width="170">
 </p>
 
+<h1 align="center">o3s</h1>
+
 <table align="center" width="80%">
   <tr>
     <td width="5%"></td>
