@@ -15,6 +15,9 @@
       <p>Give AI agents and untrusted code a long leash while you control the network they reach and the secrets they read.</p>
     </td>
   </tr>
+</table>
+
+<table align="center" width="80%">
   <tr>
     <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Software-29b6ee?style=for-the-badge" alt="Software">
