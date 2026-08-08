@@ -6,30 +6,24 @@
 
 <table align="center" width="80%">
   <tr>
-    <td width="5%"></td>
-    <td width="40%" valign="top" align="center">
+    <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Open-29b6ee?style=for-the-badge" alt="Open">
       <p>Read every line, shape it however you like, and make the whole setup truly your own to trust and extend.</p>
     </td>
-    <td width="10%"></td>
-    <td width="40%" valign="top" align="center">
+    <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Secure-29b6ee?style=for-the-badge" alt="Secure">
       <p>Give AI agents and untrusted code a long leash while you control the network they reach and the secrets they read.</p>
     </td>
-    <td width="5%"></td>
   </tr>
   <tr>
-    <td width="5%"></td>
-    <td width="40%" valign="top" align="center">
+    <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Software-29b6ee?style=for-the-badge" alt="Software">
       <p>Built for engineers and their agents to take your whole stack from prototype to production with minimal friction.</p>
     </td>
-    <td width="10%"></td>
-    <td width="40%" valign="top" align="center">
+    <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Suite-29b6ee?style=for-the-badge" alt="Suite">
       <p>Run all your projects at the same time in one workspace while keeping every one of them under your control.</p>
     </td>
-    <td width="5%"></td>
   </tr>
 </table>
 
