@@ -30,7 +30,7 @@
   </tr>
 </table>
 
-<p align="center"><em>If you have ever asked yourself one of these, o3s might just be for you:</em></p>
+<p align="center"><em>If any of these questions sound familiar, o3s might just be for you:</em></p>
 
 ## Running several projects at once?
 

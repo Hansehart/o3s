@@ -5,6 +5,9 @@ set -euo pipefail
 CONFIG_FILE=/config/config.toml
 UPSTREAM_DNS=127.0.0.11
 
+# Local port the proxy listens on
+MITM_PORT=8443
+
 # Default expiry for dnsmasq-resolved ipset entries (seconds). dnsmasq re-adds an
 # entry on each resolution, refreshing this timer, so an IP only expires once its
 # domain stops being resolved. Static IP/CIDR seeds override this with timeout 0.
@@ -13,7 +16,7 @@ IPSET_TIMEOUT=3600
 log() { echo "[gateway] INFO: $*"; }
 die() { echo "[gateway] ERROR: $*" >&2; exit 1; }
 
-# An address is static when it is an IPv4 host or CIDR; everything else is a domain.
+# An address is static when it is an IPv4 host or CIDR, otherwise a domain.
 is_ipv4() { [[ "$1" =~ ^[0-9]+(\.[0-9]+){3}(/[0-9]+)?$ ]]; }
 is_domain() { [[ "$1" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]]; }
 
@@ -26,7 +29,7 @@ link_subnet() {
 
 # 0. fail closed first: default-deny forwarding before the route and NAT come up below,
 # so the cage is denied from the first instruction (a fresh netns starts the built-in
-# chains at policy ACCEPT). The rules below open allow-listed traffic on top; OUTPUT
+# chains at policy ACCEPT). The rules below open allow-listed traffic on top. OUTPUT
 # stays ACCEPT so the gateway resolves upstream and runs its healthcheck.
 iptables -P FORWARD DROP
 iptables -P INPUT DROP
@@ -39,7 +42,7 @@ ip6tables -P FORWARD DROP 2>/dev/null || true
 # offers a default route), so we key off the known cage IP instead.
 [ -n "${GW_CAGE_IP:-}" ] || die "GW_CAGE_IP not set (expected from docker-compose environment)"
 
-# The cage interface holds our known cage IP; its subnet comes from that interface.
+# The cage interface holds our known cage IP, and its subnet comes from that interface.
 # Egress is the other (non-loopback) interface.
 ADDRS="$(ip -o -4 addr show)"
 CAGE_IF="$(echo "$ADDRS" | awk -v ip="$GW_CAGE_IP" '{split($4,a,"/"); if (a[1]==ip) {print $2; exit}}')"
@@ -51,10 +54,10 @@ CAGE_SUBNET="$(link_subnet "$CAGE_IF")"
 EGRESS_IF="$(echo "$ADDRS" | awk -v c="$CAGE_IF" '$2 != "lo" && $2 != c {print $2; exit}')"
 [ -n "$EGRESS_IF" ] || die "cannot find egress interface (is the gateway attached to the egress network?)"
 
-# The gateway's own default route must exit via egress: the cage has no host NAT,
+# The gateway's own default route must exit via egress: the cage NATs only via this gateway,
 # and Docker may hand the gateway a cage default route (which would black-hole both
 # the gateway's own traffic and everything it forwards). Point it at the egress
-# bridge gateway (.1 of the egress subnet - Docker's convention for bridges).
+# bridge gateway (.1 of the egress subnet, Docker's convention for bridges).
 EGRESS_NET="$(link_subnet "$EGRESS_IF")"
 [ -n "$EGRESS_NET" ] || die "cannot determine egress subnet on $EGRESS_IF"
 EGRESS_GW="${EGRESS_NET%/*}"; EGRESS_GW="${EGRESS_GW%.*}.1"
@@ -62,25 +65,33 @@ ip route replace default via "$EGRESS_GW" dev "$EGRESS_IF"
 
 log "egress=$EGRESS_IF (gw $EGRESS_GW)  cage=$CAGE_IF ($CAGE_SUBNET, gw $GW_CAGE_IP)"
 
-# 2. parse the allowlist: one "address port [port...]" entry per line.
-# Ports are mandatory and explicit - one ipset + FORWARD rule per distinct port.
-# Static IPv4/CIDR addresses are seeded straight into their sets; domains are added
-# by dnsmasq as it resolves them. Inline "# ..." comments are stripped.
+# 2. parse config.toml and build the rule sets.
+# Ports are mandatory and explicit, one ipset + FORWARD rule per distinct port. Static
+# IPv4/CIDR addresses are seeded straight into their sets. Domains are added by dnsmasq as it
+# resolves them. A non-empty `secret` column (from `secret = "..."` in config.toml) marks an
+# inject-host: its resolved IPs also land in the inject-hosts set for the PREROUTING REDIRECT.
 PORTS=""                    # distinct ports across the whole file
 declare -a STATIC_SEEDS=()  # "port address" for each IPv4/CIDR entry
 declare -a DOMAIN_LINES=()  # dnsmasq server=/domain/ + ipset=/domain/allowed-pA,allowed-pB lines per domain
 DOMAIN_COUNT=0              # distinct domains (DOMAIN_LINES holds two entries each)
+HAS_INJECT=""               # set once any host carries a secret (inject-hosts exist)
 
-while read -r addr ports; do
+# Read each host's ports and optional secret, failing on malformed config.
+CONFIG_TSV="$(yq -p=toml -o=tsv \
+  '[ to_entries | .[] | [.key, (.value.ports | join(" ")), (.value.secret // "")] ]' \
+  "$CONFIG_FILE")" || die "config.toml is not valid TOML: $CONFIG_FILE"
+
+while IFS=$'\t' read -r addr ports secret; do
   [ -n "$addr" ] || continue
-  [ -n "$ports" ] || die "allowlist: '$addr' has no port (format: address port...)"
-  case "$addr" in *:*) die "allowlist: IPv6 unsupported (gateway is IPv4-only): $addr";; esac
-  is_ipv4 "$addr" || is_domain "$addr" || die "allowlist: invalid address '$addr'"
+  [ -n "$ports" ] || die "config: '$addr' has no port"
+  case "$addr" in *:*) die "config: IPv6 unsupported (gateway is IPv4-only): $addr";; esac
+  is_ipv4 "$addr" || is_domain "$addr" || die "config: invalid address '$addr'"
+  [ -n "$secret" ] && HAS_INJECT=1
 
   sets=""
   for p in $ports; do
-    case "$p" in ''|*[!0-9]*) die "allowlist: invalid port '$p' for $addr";; esac
-    { [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || die "allowlist: port out of range '$p' for $addr"
+    case "$p" in ''|*[!0-9]*) die "config: invalid port '$p' for $addr";; esac
+    { [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || die "config: port out of range '$p' for $addr"
     case " $PORTS " in *" $p "*) ;; *) PORTS="$PORTS $p";; esac
     if is_ipv4 "$addr"; then
       STATIC_SEEDS+=("$p $addr")
@@ -88,31 +99,37 @@ while read -r addr ports; do
       sets="${sets:+$sets,}allowed-p$p"
     fi
   done
-  # Domains get a per-domain upstream (so they resolve at all now the catch-all is
-  # gone) plus the ipset line that captures their resolved IPs. One server= line per
-  # domain suffices for any number of ports; subdomains are covered automatically.
+  # Domains get a per-domain upstream (so they resolve now the catch-all is gone) plus the
+  # ipset line capturing their resolved IPs. One server= line per domain covers all its ports
+  # and subdomains.
   if ! is_ipv4 "$addr"; then
+    if [ -n "$secret" ]; then sets="${sets:+$sets,}inject-hosts"; fi
     DOMAIN_LINES+=("server=/$addr/$UPSTREAM_DNS")
     DOMAIN_LINES+=("ipset=/$addr/$sets")
     DOMAIN_COUNT=$((DOMAIN_COUNT + 1))
   fi
-done < <(grep -vhE '^[[:space:]]*(#|$)' "$ALLOWLIST_FILE" | sed 's/#.*//')
+done <<< "$CONFIG_TSV"
 
-[ -n "$PORTS" ] || die "allowlist is empty: $ALLOWLIST_FILE"
+[ -n "$PORTS" ] || die "config has no hosts: $CONFIG_FILE"
 
 # One ipset per distinct port. hash:net holds both dnsmasq's resolved host IPs
 # (added as /32) and our static IPs/CIDRs in the same set, so a packet's
 # destination matches whether it is a resolved host or inside an allowed subnet.
-# A default timeout expires stale resolved IPs (CDN rotations, reassigned hosts);
+# A default timeout expires stale resolved IPs (CDN rotations, reassigned hosts).
 # dnsmasq refreshes it on each resolution, and static seeds pin timeout 0 below.
 for p in $PORTS; do
   ipset create "allowed-p$p" hash:net timeout "$IPSET_TIMEOUT" -exist
 done
 
+# Resolved IPs of inject-hosts, matched by the nat PREROUTING REDIRECT below.
+if [ -n "$HAS_INJECT" ]; then
+  ipset create inject-hosts hash:net timeout "$IPSET_TIMEOUT" -exist
+fi
+
 # 3. routing sysctls
-# ip_forward is enabled by docker-compose (sysctls:); /proc/sys is read-only in
-# the container, so we can't set it here — just enforce that it is on. (IPv6
-# forwarding is blocked unconditionally by the ip6tables FORWARD DROP above.)
+# ip_forward is enabled by docker-compose (sysctls:). /proc/sys is read-only in the
+# container, so the entrypoint verifies it is on. (IPv6 forwarding is blocked by the
+# ip6tables FORWARD DROP above.)
 [ "$(cat /proc/sys/net/ipv4/ip_forward)" = 1 ] || die "net.ipv4.ip_forward is not enabled (set it via docker-compose sysctls)"
 
 # 4. firewall
@@ -121,6 +138,15 @@ done
 # break upstream resolution and the healthcheck with it.
 iptables -t nat -C POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE 2>/dev/null \
   || iptables -t nat -A POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE
+
+# Divert cage traffic to inject-hosts on :443 to the local mitmproxy sidecar, which injects the
+# upstream credential. Scoped to the inject-hosts set, so all other egress stays on the
+# FORWARD/ipset path. Redirected packets land on INPUT (local), admitted by the INPUT accept
+# below. Append only, preserving Docker's 127.0.0.11 rules that live here too.
+if [ -n "$HAS_INJECT" ]; then
+  iptables -t nat -C PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$MITM_PORT" 2>/dev/null \
+    || iptables -t nat -A PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$MITM_PORT"
+fi
 
 # Clamp MSS to path MTU on SYN to avoid TLS stalls through the DinD double-NAT.
 iptables -t mangle -F FORWARD
@@ -132,15 +158,23 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p udp --dport 53 -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport 53 -j ACCEPT
+# Admit cage traffic REDIRECTed to the mitmproxy sidecar. The REDIRECT rewrites the dst to a
+# local address, so the packet arrives on INPUT, where this rule admits it.
+if [ -n "$HAS_INJECT" ]; then
+  iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport "$MITM_PORT" -j ACCEPT
+fi
 iptables -A INPUT -p icmp -j ACCEPT
 
-# FORWARD: default-deny; only allow-listed destinations leave the cage, each on the
+# FORWARD: default-deny, so only allow-listed destinations leave the cage, each on the
 # port(s) its entry declared.
 iptables -F FORWARD
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 for p in $PORTS; do
   iptables -A FORWARD -s "$CAGE_SUBNET" -p tcp -m set --match-set "allowed-p$p" dst --dport "$p" -j ACCEPT
 done
+# Deny cage QUIC/HTTP-3: transparent interception is TCP-only, so open UDP 80/443 would let an
+# inject-host be reached over HTTP/3, bypassing the proxy. (The catch-all below also covers it.)
+iptables -A FORWARD -s "$CAGE_SUBNET" -p udp -m multiport --dports 80,443 -j REJECT --reject-with icmp-port-unreachable
 # Fail fast instead of hanging on blocked connections.
 iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 
@@ -148,7 +182,7 @@ iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 if [ ${#STATIC_SEEDS[@]} -gt 0 ]; then
   for seed in "${STATIC_SEEDS[@]}"; do
     read -r sp saddr <<<"$seed"
-    # timeout 0 = never expire: nothing re-adds static entries to refresh them.
+    # timeout 0 = keep permanently: static seeds are added once.
     ipset add -exist "allowed-p$sp" "$saddr" timeout 0
   done
 fi
@@ -163,7 +197,7 @@ if [ ${#DOMAIN_LINES[@]} -gt 0 ]; then
   printf '%s\n' "${DOMAIN_LINES[@]}" >> "$CONF"
 fi
 
-log "allowlist: ${DOMAIN_COUNT} domain(s) + ${#STATIC_SEEDS[@]} static entry(ies) on port(s)${PORTS}"
+log "config: ${DOMAIN_COUNT} domain(s) + ${#STATIC_SEEDS[@]} static entry(ies) on port(s)${PORTS}"
 log "starting dnsmasq on ${GW_CAGE_IP}:53 (upstream ${UPSTREAM_DNS})"
 
 # 6. run dnsmasq as PID 1
