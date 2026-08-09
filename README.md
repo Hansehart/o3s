@@ -25,7 +25,7 @@
     </td>
     <td width="50%" valign="top" align="center">
       <img src="https://img.shields.io/badge/Suite-29b6ee?style=for-the-badge" alt="Suite">
-      <p>Run all your projects at the same time in one workspace while keeping every one of them under your control.</p>
+      <p>Agents, containers, languages, and all your projects, wired together into one platform you just open and use.</p>
     </td>
   </tr>
 </table>
