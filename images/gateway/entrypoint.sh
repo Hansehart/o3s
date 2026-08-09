@@ -25,7 +25,7 @@ link_subnet() {
   ip route show dev "$1" scope link | awk '{print $1; exit}'
 }
 
-[ -f "$CONFIG_FILE" ] || die "config not found: $CONFIG_FILE"
+[ -f "$CONFIG_FILE" ] || die "config file $CONFIG_FILE not found"
 
 # 0. fail closed first: default-deny forwarding before the route and NAT come up below,
 # so the cage is denied from the first instruction (a fresh netns starts the built-in
@@ -79,19 +79,23 @@ HAS_INJECT=""               # set once any host carries a secret (inject-hosts e
 # Read each host's ports and optional secret, failing on malformed config.
 CONFIG_TSV="$(yq -p=toml -o=tsv \
   '[ to_entries | .[] | [.key, (.value.ports | join(" ")), (.value.secret // "")] ]' \
-  "$CONFIG_FILE")" || die "config.toml is not valid TOML: $CONFIG_FILE"
+  "$CONFIG_FILE")" || die "config file $CONFIG_FILE is not valid TOML"
 
 while IFS=$'\t' read -r addr ports secret; do
   [ -n "$addr" ] || continue
-  [ -n "$ports" ] || die "config: '$addr' has no port"
-  case "$addr" in *:*) die "config: IPv6 unsupported (gateway is IPv4-only): $addr";; esac
-  is_ipv4 "$addr" || is_domain "$addr" || die "config: invalid address '$addr'"
-  [ -n "$secret" ] && HAS_INJECT=1
+  [ -n "$ports" ] || die "host $addr has no port"
+  case "$addr" in *:*) die "IPv6 address $addr unsupported (gateway is IPv4-only)";; esac
+  is_ipv4 "$addr" || is_domain "$addr" || die "invalid address $addr"
+  # Injection identifies the host by SNI, so an inject-host must be a domain.
+  if [ -n "$secret" ]; then
+    if is_ipv4 "$addr"; then die "inject-host $addr needs a hostname not an IP"; fi
+    HAS_INJECT=1
+  fi
 
   sets=""
   for p in $ports; do
-    case "$p" in ''|*[!0-9]*) die "config: invalid port '$p' for $addr";; esac
-    { [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || die "config: port out of range '$p' for $addr"
+    case "$p" in ''|*[!0-9]*) die "invalid port $p for $addr";; esac
+    { [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || die "port $p out of range for $addr"
     case " $PORTS " in *" $p "*) ;; *) PORTS="$PORTS $p";; esac
     if is_ipv4 "$addr"; then
       STATIC_SEEDS+=("$p $addr")
@@ -110,7 +114,7 @@ while IFS=$'\t' read -r addr ports secret; do
   fi
 done <<< "$CONFIG_TSV"
 
-[ -n "$PORTS" ] || die "config has no hosts: $CONFIG_FILE"
+[ -n "$PORTS" ] || die "config file $CONFIG_FILE has no hosts"
 
 # One ipset per distinct port. hash:net holds both dnsmasq's resolved host IPs
 # (added as /32) and our static IPs/CIDRs in the same set, so a packet's
@@ -197,8 +201,8 @@ if [ ${#DOMAIN_LINES[@]} -gt 0 ]; then
   printf '%s\n' "${DOMAIN_LINES[@]}" >> "$CONF"
 fi
 
-log "config: ${DOMAIN_COUNT} domain(s) + ${#STATIC_SEEDS[@]} static entry(ies) on port(s)${PORTS}"
-log "starting dnsmasq on ${GW_CAGE_IP}:53 (upstream ${UPSTREAM_DNS})"
+log "loaded ${DOMAIN_COUNT} domain(s) + ${#STATIC_SEEDS[@]} static entry(ies) on port(s)${PORTS}"
+log "starting dnsmasq on ${GW_CAGE_IP} port 53 (upstream ${UPSTREAM_DNS})"
 
 # 6. run dnsmasq as PID 1
 exec dnsmasq --keep-in-foreground --conf-file="$CONF"

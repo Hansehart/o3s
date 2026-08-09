@@ -16,4 +16,4 @@ esac
 [ -n "$IP" ] || die "dnsmasq did not resolve $ADDR"
 
 nc -w3 "$IP" "$PORT" </dev/null >/dev/null 2>&1 \
-  || die "no egress - TCP $PORT to $ADDR ($IP) failed"
+  || die "no egress to $ADDR ($IP) on TCP $PORT"
