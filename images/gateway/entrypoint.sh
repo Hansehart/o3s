@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fixed image contract: allowlist mount point and Docker's embedded resolver.
-ALLOWLIST_FILE=/config/allowlist.txt
+# Fixed image contract: config mount point and Docker's embedded resolver.
+CONFIG_FILE=/config/config.toml
 UPSTREAM_DNS=127.0.0.11
 
 # Default expiry for dnsmasq-resolved ipset entries (seconds). dnsmasq re-adds an
@@ -22,7 +22,7 @@ link_subnet() {
   ip route show dev "$1" scope link | awk '{print $1; exit}'
 }
 
-[ -f "$ALLOWLIST_FILE" ] || die "allowlist not found: $ALLOWLIST_FILE"
+[ -f "$CONFIG_FILE" ] || die "config not found: $CONFIG_FILE"
 
 # 0. fail closed first: default-deny forwarding before the route and NAT come up below,
 # so the cage is denied from the first instruction (a fresh netns starts the built-in

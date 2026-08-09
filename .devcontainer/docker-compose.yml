@@ -25,9 +25,9 @@ services:
     # Cage identity: the gateway locates its cage/egress interfaces from this
     environment:
       GW_CAGE_IP: *gateway_ip
-    # The allowlist is the single source of truth, read-only to the gateway
+    # The allow-listed hosts
     volumes:
-      - ./allowlist.txt:/config/allowlist.txt:ro
+      - ./config.toml:/config/config.toml:ro
     networks:
       cage:
         ipv4_address: *gateway_ip
@@ -54,11 +54,16 @@ services:
     # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
+    # The marker the addon swaps for real secrets
+    environment:
+      O3S_MARKER: ${O3S_MARKER}
     volumes:
       # CA cert and key the proxy signs intercepted leaf certs with
       - ${HOME}/.config/o3s/mitmproxy-ca.pem:/home/mitmproxy/.mitmproxy/mitmproxy-ca.pem:ro
-      # Host to token map the addon reads per request to pick each upstream's key
-      - ${HOME}/.config/o3s/inject.env:/home/mitmproxy/.mitmproxy/inject.env:ro
+      # Which hosts inject which secret
+      - ./config.toml:/home/mitmproxy/.mitmproxy/config.toml:ro
+      # The real tokens
+      - ${HOME}/.config/o3s/secrets.env:/home/mitmproxy/.mitmproxy/secrets.env:ro
       # Injection logic (not secret)
       - ./mitm/inject.py:/addons/inject.py:ro
     # Transparently intercept the redirected inject-host traffic on the gateway's cage IP
@@ -120,7 +125,7 @@ services:
     depends_on:
       gateway:
         condition: service_healthy
-    # Resolve through the gateway's dnsmasq (this populates the allowlist)
+    # Resolve through the gateway's dnsmasq
     dns:
       - *gateway_ip
 

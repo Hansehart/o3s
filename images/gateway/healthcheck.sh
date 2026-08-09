@@ -3,10 +3,9 @@ set -euo pipefail
 
 die() { echo "[healthcheck] ERROR: $*" >&2; exit 1; }
 
-# Probe the first allow-listed entry: connect to its address on its first port.
-first="$(grep -vhE '^[[:space:]]*(#|$)' /config/allowlist.txt | sed 's/#.*//' | grep -m1 .)" || true
-read -r ADDR PORT _ <<<"$first"
-[ -n "$ADDR" ] && [ -n "$PORT" ] || die "allowlist has no usable entry"
+# Probe the first allow-listed host: connect to its address on its first port.
+read -r ADDR PORT < <(yq -p=toml -o=tsv '[ to_entries | .[0] | [.key, (.value.ports | .[0])] ]' /config/config.toml) || true
+[ -n "$ADDR" ] && [ -n "$PORT" ] || die "config has no usable host"
 
 # A domain resolves through dnsmasq (which also seeds the ipset); an IP is used as-is.
 case "$ADDR" in

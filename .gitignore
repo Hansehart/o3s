@@ -1,5 +1,5 @@
 .devcontainer/.env
-.devcontainer/allowlist.txt
+.devcontainer/config.toml
 .devcontainer/devcontainer-lock.json
 .devcontainer/o3s.code-workspace
 *.crt
