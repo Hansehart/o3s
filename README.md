@@ -2,7 +2,35 @@
   <img src=".github/assets/logo.png" alt="o3s logo" width="170">
 </p>
 
-<h1 align="center"><b>O</b>pen <b>S</b>ecure <b>S</b>oftware <b>S</b>uite</h1>
+<h1 align="center">o3s</h1>
+
+<table align="center" width="80%">
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="https://img.shields.io/badge/Open-29b6ee?style=for-the-badge" alt="Open">
+      <p>Read every line, shape it however you like, and make the whole setup truly your own to trust and extend.</p>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="https://img.shields.io/badge/Secure-29b6ee?style=for-the-badge" alt="Secure">
+      <p>Give AI agents and untrusted code a long leash while you control the network they reach and the secrets they read.</p>
+    </td>
+  </tr>
+</table>
+
+<table align="center" width="80%">
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="https://img.shields.io/badge/Software-29b6ee?style=for-the-badge" alt="Software">
+      <p>Built for engineers and their agents to take your whole stack from prototype to production with minimal friction.</p>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="https://img.shields.io/badge/Suite-29b6ee?style=for-the-badge" alt="Suite">
+      <p>Agents, containers, languages, and all your projects, wired together into one platform you just open and use.</p>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><em>If any of these questions sound familiar, o3s might just be for you:</em></p>
 
 ## Running several projects at once?
 

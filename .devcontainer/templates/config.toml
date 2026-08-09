@@ -1,0 +1,90 @@
+# NAME
+#        config.toml — o3s egress allowlist and credential injection
+#
+# SYNOPSIS
+#        ["host"]
+#        ports  = [PORT, ...]
+#        secret = "NAME"          # optional
+#
+# DESCRIPTION
+#        Each table is one host the gateway permits; everything else is default-denied. A
+#        host may be a domain (subdomains covered), an IPv4 host, or an IPv4 CIDR block.
+#
+#        ports   Required. TCP port(s) allowed to the host.
+#        secret  Optional. Marks a credential-inject host: the gateway routes its HTTPS
+#                through the proxy, which swaps the o3s marker for this secret's token (from
+#                ~/.config/o3s/secrets.env).
+#
+# EXAMPLES
+#        ["github.com"]
+#        ports = [22, 443]
+#
+#        ["api.openai.com"]
+#        ports  = [443]
+#        secret = "OPENAI_API_KEY"
+#
+#        ["10.8.0.0/24"]
+#        ports = [443]
+#
+# NOTES
+#        Edits take effect after: docker restart o3s-gateway o3s-mitm  (restart both due to shared network namespace)
+
+# Git hosting
+["ghcr.io"]
+ports = [443]
+["github.com"]
+ports = [22, 443]
+["githubusercontent.com"]
+ports = [443]
+["gitlab.com"]
+ports = [22, 443]
+
+# AI providers
+["api.anthropic.com"]
+ports = [443]
+secret = "ANTHROPIC_API_KEY"
+["api.openai.com"]
+ports = [443]
+secret = "OPENAI_API_KEY"
+["auth.openai.com"]
+ports = [443]
+["chatgpt.com"]
+ports = [443]
+["platform.claude.com"]
+ports = [443]
+
+# Docker
+["auth.docker.io"]
+ports = [443]
+["docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com"]
+ports = [443]
+["production.cloudfront.docker.com"]
+ports = [443]
+["registry-1.docker.io"]
+ports = [443]
+
+# Package managers
+["files.pythonhosted.org"]
+ports = [443]
+["pypi.org"]
+ports = [443]
+["registry.npmjs.org"]
+ports = [443]
+
+# TeX Live
+["texlive.info"]
+ports = [443]
+
+# VS Code
+["gallery.vsassets.io"]
+ports = [443]
+["gallerycdn.vsassets.io"]
+ports = [443]
+["marketplace.visualstudio.com"]
+ports = [443]
+["update.code.visualstudio.com"]
+ports = [443]
+["vscode.blob.core.windows.net"]
+ports = [443]
+
+# Custom

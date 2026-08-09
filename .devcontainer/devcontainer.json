@@ -1,3 +1,13 @@
+// NAME
+//        devcontainer.json — the o3s dev container (the "cage")
+//
+// DESCRIPTION
+//        The sandboxed dev container: the o3s-base image plus layered features, the remote
+//        user, and the lifecycle hooks. Egress is forced through the o3s gateway and secrets
+//        are injected through the proxy.
+//
+// SEE ALSO
+//        docker-compose.yml, config.toml, https://containers.dev
 {
     // Name for the dev container
     "name": "o3s",
