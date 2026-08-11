@@ -49,10 +49,10 @@
         //     "stateDir": "/home/ubuntu/features/uv",
         //     "python": "3.13"
         // },
-        "ghcr.io/hansehart/devcontainer-features/sops:1": {
-            "version": "latest",
-            "stateDir": "/home/ubuntu/features/sops"
-        }
+        // "ghcr.io/hansehart/devcontainer-features/sops:1": {
+        //     "version": "latest",
+        //     "stateDir": "/home/ubuntu/features/sops"
+        // }
     },
     // Non-root user VS Code connects as
     "remoteUser": "ubuntu",

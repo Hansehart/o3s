@@ -2,9 +2,9 @@
 set -euo pipefail
 
 DENY_HOST=1.1.1.1
-# deny check: a non-allow-listed public IP must stay blocked
+# A non-allow-listed public IP must stay blocked
 if curl -k -s --connect-timeout 3 -o /dev/null "https://$DENY_HOST"; then
-  echo "[post-start] WARNING: non-allow-listed $DENY_HOST:443 is reachable — egress policy is NOT enforced" >&2
+  echo "[o3s] WARNING: egress policy not enforced ($DENY_HOST is reachable)" >&2
 else
-  echo "[post-start] INFO: non-allow-listed egress blocked"
+  echo "[o3s] INFO: egress firewall active (non-allowlisted traffic blocked)"
 fi
