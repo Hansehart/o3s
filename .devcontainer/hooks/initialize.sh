@@ -22,4 +22,4 @@ if [ ! -f "$SECRETS_DIR/secrets.env" ]; then
 fi
 
 # Generate and apply the injection marker (idempotent)
-sed -i "s|__O3S_MARKER__|o3s-$(openssl rand -hex 32)|g" .devcontainer/.env
+sed -i "s|__O3S_MARKER__|o3s-$(openssl rand -hex 32)|" .devcontainer/.env

@@ -43,6 +43,9 @@ ports = [22, 443]
 ["api.anthropic.com"]
 ports = [443]
 secret = "ANTHROPIC_API_KEY"
+["api.mistral.ai"]
+ports = [443]
+secret = "MISTRAL_API_KEY"
 ["api.openai.com"]
 ports = [443]
 secret = "OPENAI_API_KEY"
@@ -83,6 +86,8 @@ ports = [443]
 ["marketplace.visualstudio.com"]
 ports = [443]
 ["update.code.visualstudio.com"]
+ports = [443]
+["main.vscode-cdn.net"]
 ports = [443]
 ["vscode.blob.core.windows.net"]
 ports = [443]
