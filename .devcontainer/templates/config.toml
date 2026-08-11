@@ -87,6 +87,8 @@ ports = [443]
 ports = [443]
 ["update.code.visualstudio.com"]
 ports = [443]
+["main.vscode-cdn.net"]
+ports = [443]
 ["vscode.blob.core.windows.net"]
 ports = [443]
 
