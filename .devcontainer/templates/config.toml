@@ -43,6 +43,10 @@ ports = [22, 443]
 ["api.anthropic.com"]
 ports = [443]
 secret = "ANTHROPIC_API_KEY"
+["chatgpt.com"]
+ports = [443]
+["platform.claude.com"]
+ports = [443]
 ["api.mistral.ai"]
 ports = [443]
 secret = "MISTRAL_API_KEY"
@@ -51,27 +55,23 @@ ports = [443]
 secret = "OPENAI_API_KEY"
 ["auth.openai.com"]
 ports = [443]
-["chatgpt.com"]
-ports = [443]
-["platform.claude.com"]
-ports = [443]
 
 # Docker
-["auth.docker.io"]
-ports = [443]
 ["docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com"]
 ports = [443]
 ["production.cloudfront.docker.com"]
+ports = [443]
+["auth.docker.io"]
 ports = [443]
 ["registry-1.docker.io"]
 ports = [443]
 
 # Package managers
-["files.pythonhosted.org"]
+["registry.npmjs.org"]
 ports = [443]
 ["pypi.org"]
 ports = [443]
-["registry.npmjs.org"]
+["files.pythonhosted.org"]
 ports = [443]
 
 # TeX Live
