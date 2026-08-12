@@ -83,35 +83,48 @@ class InjectCredentials:
         if (flow.client_conn.sni or "") in self._hosts:
             flow.request.stream = False
 
+    def responseheaders(self, flow: http.HTTPFlow) -> None:
+        """Stream an intercepted response through so a long or event-stream reply flows incrementally."""
+        self._load()
+        if (flow.client_conn.sni or "") in self._hosts:
+            flow.response.stream = True
+
     def request(self, flow: http.HTTPFlow) -> None:
         """Replace the placeholder with the destination's secret wherever it appears."""
         self._load()
         host = flow.client_conn.sni or ""
         if host not in self._hosts:
             return
-        token = self._hosts.get(host)
-        if not token:
-            # Fail closed: intercepted, but no usable secret, so reject rather than forward keyless.
-            flow.response = http.Response.make(
-                502, b"o3s: no secret configured for this host\n", {"Content-Type": "text/plain"}
-            )
-            return
         m = self.marker
         if not m:
             return
         req = flow.request
+        # Locate the placeholder that marks a request for injection.
+        hdr_names = {k for k, v in req.headers.items(multi=True) if m in v}
+        in_path = m in req.path
+        body = req.get_content(strict=False)  # buffered in requestheaders
+        in_body = bool(body) and m.encode() in body
+        if not (hdr_names or in_path or in_body):
+            return
+        token = self._hosts.get(host)
+        if not token:
+            # The placeholder is present but no secret is configured, so reject the request.
+            flow.response = http.Response.make(
+                502,
+                b"o3s: no secret configured for this host\n",
+                {"Content-Type": "text/plain"},
+            )
+            return
         # Headers: replace per unique name to preserve duplicate headers.
-        for name in {k for k, _ in req.headers.items(multi=True)}:
-            vals = req.headers.get_all(name)
-            new = [v.replace(m, token) for v in vals]
-            if new != vals:
-                req.headers.set_all(name, new)
-        # Query: the marker is URL-safe; percent-encode the token so it stays valid in the URL.
-        if m in req.path:
+        for name in hdr_names:
+            req.headers.set_all(
+                name, [v.replace(m, token) for v in req.headers.get_all(name)]
+            )
+        # Query: percent-encode the token so it stays valid in the URL.
+        if in_path:
             req.path = req.path.replace(m, quote(token, safe=""))
-        # Body: buffered above; decode best-effort so a bad content-encoding can't error the hook.
-        body = req.get_content(strict=False)
-        if body and m.encode() in body:
+        # Body: decode best-effort so any content-encoding is handled.
+        if in_body:
             req.set_content(body.replace(m.encode(), token.encode()))
 
 

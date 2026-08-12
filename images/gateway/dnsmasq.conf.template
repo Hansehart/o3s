@@ -24,5 +24,7 @@ bogus-priv
 
 # Cache up to 1000 resolved names
 cache-size=1000
+# Cap cached record lifetime below the ipset timeout so a re-resolve refreshes the ipset
+max-cache-ttl=1800
 
 # generated server=/ipset= allowlist lines are appended below by entrypoint.sh
