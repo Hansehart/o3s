@@ -1,0 +1,24 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "body-leading-blank": [2, "always"],
+    "body-max-line-length": [2, "always", 72],
+    "footer-leading-blank": [2, "always"],
+    "header-max-length": [2, "always", 72],
+    "scope-empty": [2, "never"],
+    "scope-enum": [
+      2,
+      "always",
+      [
+        "base",
+        "deps",
+        "devcontainer",
+        "docs",
+        "gateway",
+        "mitm",
+        "repo"
+      ]
+    ],
+    "subject-min-length": [2, "always", 10]
+  }
+}
