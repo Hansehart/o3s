@@ -27,10 +27,12 @@
       "groupName": "Hansehart Devcontainer Features"
     },
     {
-      "description": "Bundle routine base-image digest refreshes into one pull request while keeping version bumps separate.",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["pin", "digest"],
-      "groupName": "Docker Digests"
+      "description": "Images tracking a rolling tag do not need a digest pin.",
+      "matchPackageNames": [
+        "ghcr.io/hansehart/o3s-base",
+        "ghcr.io/hansehart/o3s-gateway"
+      ],
+      "pinDigests": false
     },
     {
       "description": "Label major updates so they get a deliberate review.",
