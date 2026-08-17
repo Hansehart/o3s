@@ -26,7 +26,8 @@
         },
         "ghcr.io/devcontainers/features/docker-in-docker:4": {
             "version": "stable",
-            "moby": false // Docker CE
+            "moby": false, // Docker CE
+            "azureDnsAutoDetection": false
         },
         // "ghcr.io/devcontainers/features/github-cli:1": {
         //     "version": "latest"

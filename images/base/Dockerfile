@@ -18,5 +18,8 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt
 
+# Docker daemon config for the in-cage engine
+COPY daemon.json /etc/docker/daemon.json
+
 RUN mkdir -p /home/ubuntu/features /home/ubuntu/projects \
  && chown -R ubuntu:ubuntu /home/ubuntu
