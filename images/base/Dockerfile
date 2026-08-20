@@ -5,11 +5,12 @@ ENV LANG=C.UTF-8
 
 # Base packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      iproute2 \
       ca-certificates \
       curl \
-      ripgrep \
+      git \
+      iproute2 \
       openssh-client \
+      ripgrep \
   && rm -rf /var/lib/apt/lists/*
 
 # Point runtimes with their own trust store at the system CA bundle
