@@ -6,12 +6,17 @@ connection's verified identity, wherever the placeholder appears. The client dec
 secret goes, so no provider-specific knowledge is needed; real secrets stay proxy-side and the
 client only ever holds the placeholder.
 
+Responses take the reverse trip. A secret appearing in one is masked before it reaches the client,
+so a destination that quotes request content back hands the client filler. Masking matches the
+secret byte for byte, and a destination that re-encodes it first (base64, escaping) echoes it on.
+
 Inputs:
   config    which destination injects which named secret
   secrets   the real value for each named secret
   marker    the placeholder the client sends in place of a secret
 """
 
+import logging
 import os
 from pathlib import Path
 from urllib.parse import quote
@@ -19,9 +24,8 @@ from urllib.parse import quote
 import tomllib
 from mitmproxy import http, tls
 
-CONFDIR = "/home/mitmproxy/.mitmproxy"
-CONFIG_FILE = os.environ.get("O3S_CONFIG_FILE", f"{CONFDIR}/config.toml")
-SECRETS_FILE = os.environ.get("O3S_SECRETS_FILE", f"{CONFDIR}/secrets.env")
+CONFIG_FILE = os.environ.get("O3S_CONFIG_FILE", "/etc/o3s/config.toml")
+SECRETS_FILE = os.environ.get("O3S_SECRETS_FILE", "/config/secrets.env")
 
 
 def _parse_secrets(text):
@@ -38,6 +42,14 @@ def _parse_secrets(text):
         if tok:
             out[name.strip()] = tok
     return out
+
+
+def _prefix_overlap(buf: bytes, tok: bytes) -> int:
+    """Length of the tail of buf that could be the opening bytes of tok."""
+    for k in range(min(len(buf), len(tok) - 1), 0, -1):
+        if buf.endswith(tok[:k]):
+            return k
+    return 0
 
 
 class InjectCredentials:
@@ -71,6 +83,46 @@ class InjectCredentials:
                 hosts[host] = secrets.get(name)  # None until the secret is filled in
         self._hosts = hosts
 
+    def _masker(self, tok: bytes, host: str):
+        """Mask the secret with same-length filler as a body streams past.
+
+        The response headers, content-length included, go out before the first chunk arrives, so
+        the replacement holds the original length. A secret split across two chunks is caught by
+        holding back the tail that could be its opening bytes, which for a high-entropy secret is
+        empty on all but a vanishing fraction of chunks.
+        """
+        mask = b"*" * len(tok)
+        carry = b""
+        logged = False
+
+        def mask_chunk(data: bytes):
+            nonlocal carry, logged
+            buf = carry + data
+            if tok in buf:
+                buf = buf.replace(tok, mask)
+                if not logged:
+                    logged = True
+                    logging.warning(f"o3s: masked {host} secret echoed in a response body")
+            # The final call arrives with b"" and releases whatever is still held back.
+            cut = len(buf) - _prefix_overlap(buf, tok) if data else len(buf)
+            carry = buf[cut:]
+            # Hand back an empty list to hold a chunk back, keeping the body open.
+            return buf[:cut] or []
+
+        return mask_chunk
+
+    def _mask_headers(self, resp: http.Response, token: str, host: str) -> None:
+        """Mask the secret in response headers, which carry no length commitment."""
+        names = {k for k, v in resp.headers.items(multi=True) if token in v}
+        if not names:
+            return
+        mask = "*" * len(token)
+        for name in names:
+            resp.headers.set_all(
+                name, [v.replace(token, mask) for v in resp.headers.get_all(name)]
+            )
+        logging.warning(f"o3s: masked {host} secret echoed in a response header")
+
     def tls_clienthello(self, data: tls.ClientHelloData) -> None:
         """Pass connections we do not inject straight through, untouched."""
         self._load()
@@ -78,16 +130,41 @@ class InjectCredentials:
             data.ignore_connection = True
 
     def requestheaders(self, flow: http.HTTPFlow) -> None:
-        """Buffer an intercepted body so the placeholder can be replaced inside it."""
+        """Ask for an uncompressed reply, so an echoed secret stays visible on the way back."""
         self._load()
         if (flow.client_conn.sni or "") in self._hosts:
-            flow.request.stream = False
+            flow.request.anticomp()
 
     def responseheaders(self, flow: http.HTTPFlow) -> None:
-        """Stream an intercepted response through so a long or event-stream reply flows incrementally."""
+        """Stream an intercepted response through, masking the secret as it passes."""
         self._load()
-        if (flow.client_conn.sni or "") in self._hosts:
-            flow.response.stream = True
+        host = flow.client_conn.sni or ""
+        if host not in self._hosts:
+            return
+        resp = flow.response
+        token = self._hosts[host]
+        if not token:
+            resp.stream = True
+            return
+        self._mask_headers(resp, token, host)
+        if resp.headers.get("content-encoding", "identity").lower() in ("", "identity"):
+            resp.stream = self._masker(token.encode(), host)
+        else:
+            # A compressed body reads as noise chunk by chunk, so buffer it and mask it whole.
+            resp.stream = False
+            flow.metadata["o3s_mask"] = token
+
+    def response(self, flow: http.HTTPFlow) -> None:
+        """Mask the secret in a buffered body, which responseheaders deferred to here."""
+        token = flow.metadata.pop("o3s_mask", None)
+        if not token:
+            return
+        body = flow.response.get_content(strict=False)
+        if body and token.encode() in body:
+            flow.response.set_content(body.replace(token.encode(), b"*" * len(token)))
+            logging.warning(
+                f"o3s: masked {flow.client_conn.sni} secret echoed in a response body"
+            )
 
     def request(self, flow: http.HTTPFlow) -> None:
         """Replace the placeholder with the destination's secret wherever it appears."""
@@ -102,7 +179,7 @@ class InjectCredentials:
         # Locate the placeholder that marks a request for injection.
         hdr_names = {k for k, v in req.headers.items(multi=True) if m in v}
         in_path = m in req.path
-        body = req.get_content(strict=False)  # buffered in requestheaders
+        body = req.get_content(strict=False)
         in_body = bool(body) and m.encode() in body
         if not (hdr_names or in_path or in_body):
             return

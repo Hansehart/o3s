@@ -54,25 +54,30 @@ services:
     # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
-    # The marker the addon swaps for real secrets
+    # Run mitmdump as this host's user
+    entrypoint: ["mitmdump"]
+    user: ${O3S_UID}:${O3S_GID}
+    # Reach the mounted secrets by file permission alone
+    cap_drop:
+      - ALL
     environment:
+      # The marker the addon swaps for real secrets
       O3S_MARKER: ${O3S_MARKER}
     volumes:
-      # CA cert and key the proxy signs intercepted leaf certs with
-      - ${HOME}/.config/o3s/mitmproxy-ca.pem:/home/mitmproxy/.mitmproxy/mitmproxy-ca.pem:ro
+      # Signing CA, DH parameters and the real tokens
+      - ${HOME}/.config/o3s:/config:ro
       # Which hosts inject which secret
-      - ./config.toml:/home/mitmproxy/.mitmproxy/config.toml:ro
-      # The real tokens
-      - ${HOME}/.config/o3s/secrets.env:/home/mitmproxy/.mitmproxy/secrets.env:ro
+      - ./config.toml:/etc/o3s/config.toml:ro
       # Injection logic (not secret)
       - ./mitm/inject.py:/addons/inject.py:ro
     # Transparently intercept the redirected inject-host traffic on the gateway's cage IP
     command: >
-      mitmdump --mode transparent --showhost
+      --mode transparent --showhost
       --set connection_strategy=lazy
       --set block_global=false
       --set onboarding=false
-      --set stream_large_bodies=1m
+      --set body_size_limit=100m
+      --set confdir=/config
       --listen-host 10.10.0.2 --listen-port 8443
       -s /addons/inject.py
     restart: unless-stopped
@@ -103,8 +108,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEMORY_LIMIT}
-          cpus: ${CPU_LIMIT}
+          memory: 8G
+          cpus: 4
         #reservations:
         #  devices:
         #    - driver: nvidia
@@ -116,8 +121,8 @@ services:
     # Deny privilege escalation via setuid binaries
     security_opt:
       - no-new-privileges:true
-    # Trust this host's proxy CA, route egress through the gateway, and keep the container alive.
-    command: bash -c 'update-ca-certificates >/dev/null 2>&1 || true; ip route replace default via "$$GATEWAY_IP" || true; exec sleep infinity'
+    # Bring the cage up behind the gateway
+    command: bash /home/ubuntu/o3s/.devcontainer/cage/start.sh
     # Its sole exit is the gateway
     networks:
       - cage
