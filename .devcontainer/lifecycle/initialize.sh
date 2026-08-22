@@ -15,7 +15,7 @@ SECRETS_DIR="${O3S_SECRETS_DIR:-$HOME/.config/o3s}"
 install -d -m 700 "$SECRETS_DIR"
 
 # This host's egress-proxy CA
-bash .devcontainer/mitm/gen-ca.sh
+bash .devcontainer/proxy/gen-ca.sh
 
 # Seed the real-token file from its template
 [ -f "$SECRETS_DIR/secrets.env" ] \

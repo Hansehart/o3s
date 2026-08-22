@@ -15,7 +15,7 @@
         "devcontainer",
         "docs",
         "gateway",
-        "mitm",
+        "proxy",
         "repo"
       ]
     ],

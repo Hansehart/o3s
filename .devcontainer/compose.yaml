@@ -45,10 +45,10 @@ services:
       retries: 3
 
   # Injects the upstream API key into inject-host HTTPS so the keys live here, never in the cage.
-  mitmproxy:
+  proxy:
     image: ghcr.io/mitmproxy/mitmproxy:12.2.3@sha256:00b77b5d8804c8ad18cb6caefbf9d5849e895e8986c5ce011f4ae30f4385962f
     pull_policy: missing
-    container_name: o3s-mitm
+    container_name: o3s-proxy
     # Share the gateway's network namespace so its iptables REDIRECT lands here and resolves the original dst
     network_mode: "service:gateway"
     # Deny privilege escalation via setuid binaries
@@ -69,7 +69,7 @@ services:
       # Which hosts inject which secret
       - ./config.toml:/etc/o3s/config.toml:ro
       # Injection logic (not secret)
-      - ./mitm/inject.py:/addons/inject.py:ro
+      - ./proxy/inject.py:/addons/inject.py:ro
     # Transparently intercept the redirected inject-host traffic on the gateway's cage IP
     command: >
       --mode transparent --showhost

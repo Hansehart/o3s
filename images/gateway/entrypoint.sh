@@ -6,7 +6,7 @@ CONFIG_FILE=/config/config.toml
 UPSTREAM_DNS=127.0.0.11
 
 # Local port the proxy listens on
-MITM_PORT=8443
+PROXY_PORT=8443
 
 # Default expiry for dnsmasq-resolved ipset entries (seconds). dnsmasq re-adds an
 # entry on each resolution, refreshing this timer, so an IP only expires once its
@@ -143,13 +143,13 @@ fi
 iptables -t nat -C POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE 2>/dev/null \
   || iptables -t nat -A POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE
 
-# Divert cage traffic to inject-hosts on :443 to the local mitmproxy sidecar, which injects the
+# Divert cage traffic to inject-hosts on :443 to the local proxy sidecar, which injects the
 # upstream credential. Scoped to the inject-hosts set, so all other egress stays on the
 # FORWARD/ipset path. Redirected packets land on INPUT (local), admitted by the INPUT accept
 # below. Append only, preserving Docker's 127.0.0.11 rules that live here too.
 if [ -n "$HAS_INJECT" ]; then
-  iptables -t nat -C PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$MITM_PORT" 2>/dev/null \
-    || iptables -t nat -A PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$MITM_PORT"
+  iptables -t nat -C PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$PROXY_PORT" 2>/dev/null \
+    || iptables -t nat -A PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$PROXY_PORT"
 fi
 
 # Clamp MSS to path MTU on SYN to avoid TLS stalls through the DinD double-NAT.
@@ -162,10 +162,10 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p udp --dport 53 -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport 53 -j ACCEPT
-# Admit cage traffic REDIRECTed to the mitmproxy sidecar. The REDIRECT rewrites the dst to a
+# Admit cage traffic REDIRECTed to the proxy sidecar. The REDIRECT rewrites the dst to a
 # local address, so the packet arrives on INPUT, where this rule admits it.
 if [ -n "$HAS_INJECT" ]; then
-  iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport "$MITM_PORT" -j ACCEPT
+  iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport "$PROXY_PORT" -j ACCEPT
 fi
 iptables -A INPUT -p icmp -j ACCEPT
 

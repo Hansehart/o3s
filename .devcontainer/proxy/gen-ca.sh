@@ -16,7 +16,6 @@ install -d -m 700 "$SECRETS_DIR"
 
 # Create the self-signed root CA once; mitmproxy signs per-host leaf certs with it.
 if [ ! -f "$CA_PEM" ]; then
-  log "generating egress-proxy CA"
   if ! out="$(openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
     -keyout "$CA_PEM" -out "$PUBLIC_CRT" \
     -subj "/O=o3s/CN=Egress Proxy CA" \
@@ -26,6 +25,7 @@ if [ ! -f "$CA_PEM" ]; then
     die "could not generate CA"
   fi
   cat "$PUBLIC_CRT" >> "$CA_PEM"   # mitmproxy reads one PEM: key then cert
+  log "generated egress-proxy CA"
 fi
 
 # Ensure the cage-trusted public cert exists and is world-readable.
@@ -34,9 +34,9 @@ chmod 644 "$PUBLIC_CRT"
 
 # Supply the DH parameters the proxy loads at startup, keeping its config dir read-only.
 if [ ! -f "$DH_PEM" ]; then
-  log "generating DH parameters (one-off, takes a few seconds)"
   if ! out="$(openssl dhparam -out "$DH_PEM" 2048 2>&1)"; then
     echo "$out" >&2
     die "could not generate DH parameters"
   fi
+  log "generated DH parameters"
 fi
