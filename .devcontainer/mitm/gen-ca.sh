@@ -8,6 +8,7 @@ die() { echo "[o3s] ERROR: $*" >&2; exit 1; }
 SECRETS_DIR="${O3S_SECRETS_DIR:-$HOME/.config/o3s}"
 CA_PEM="$SECRETS_DIR/mitmproxy-ca.pem"
 PUBLIC_CRT="$SECRETS_DIR/mitmproxy-ca.crt"
+DH_PEM="$SECRETS_DIR/mitmproxy-dhparam.pem"
 
 # Create the secrets dir with owner-only perms
 umask 077
@@ -30,3 +31,12 @@ fi
 # Ensure the cage-trusted public cert exists and is world-readable.
 [ -f "$PUBLIC_CRT" ] || openssl x509 -in "$CA_PEM" -out "$PUBLIC_CRT"
 chmod 644 "$PUBLIC_CRT"
+
+# Supply the DH parameters the proxy loads at startup, keeping its config dir read-only.
+if [ ! -f "$DH_PEM" ]; then
+  log "generating DH parameters (one-off, takes a few seconds)"
+  if ! out="$(openssl dhparam -out "$DH_PEM" 2048 2>&1)"; then
+    echo "$out" >&2
+    die "could not generate DH parameters"
+  fi
+fi
