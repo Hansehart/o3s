@@ -3,18 +3,18 @@
 //
 // DESCRIPTION
 //        The sandboxed dev container: the o3s-base image plus layered features, the remote
-//        user, and the lifecycle hooks. Egress is forced through the o3s gateway and secrets
+//        user, and the lifecycle scripts. Egress is forced through the o3s gateway and secrets
 //        are injected through the proxy.
 //
 // SEE ALSO
-//        docker-compose.yml, config.toml, https://containers.dev
+//        compose.yaml, config.toml, https://containers.dev
 {
     // Name for the dev container
     "name": "o3s",
     // Deal with zombie processes
     "init": true,
     // Location of compose file
-    "dockerComposeFile": "docker-compose.yml",
+    "dockerComposeFile": "compose.yaml",
     // Which container from compose should be entered
     "service": "o3s",
     // Additional software layered onto the o3s image.
@@ -60,9 +60,9 @@
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/ubuntu/o3s",
     // Seed the allowlist from its template and derive the cage environment from it
-    "initializeCommand": "bash .devcontainer/hooks/initialize.sh",
+    "initializeCommand": "bash .devcontainer/lifecycle/initialize.sh",
     // Probe that egress reaches the gateway on every container start
-    "postStartCommand": "bash .devcontainer/hooks/post-start.sh",
+    "postStartCommand": "bash .devcontainer/lifecycle/post-start.sh",
     // VSCode settings
     "customizations": {
         "vscode": {
