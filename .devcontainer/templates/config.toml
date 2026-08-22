@@ -28,7 +28,7 @@
 #
 # NOTES
 #        A host or port takes effect after
-#            docker restart o3s-gateway o3s-mitm
+#            docker restart o3s-gateway o3s-proxy
 #        (both, because they share a network namespace)
 #
 #        A new or removed `secret` also needs the cage, which re-exports the markers on start
