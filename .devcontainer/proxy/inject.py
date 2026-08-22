@@ -1,4 +1,8 @@
-"""Credential injection for the egress proxy (mitmproxy addon).
+"""Allowlist enforcement and credential injection for the egress proxy (mitmproxy addon).
+
+The gateway admits a connection by address, which any host sharing that address satisfies, so this
+addon authorises the name the client asks for in the TLS handshake and kills anything the allowlist
+does not declare. Permitted destinations pass through undecrypted unless they inject a secret.
 
 The client sends a fixed placeholder in place of every secret. For each intercepted request,
 this addon replaces that placeholder with the real secret for the destination, chosen by the
@@ -18,11 +22,13 @@ Inputs:
 
 import logging
 import os
+import re
 from pathlib import Path
 from urllib.parse import quote
 
 import tomllib
 from mitmproxy import http, tls
+from mitmproxy.proxy import server_hooks
 
 CONFIG_FILE = os.environ.get("O3S_CONFIG_FILE", "/etc/o3s/config.toml")
 SECRETS_FILE = os.environ.get("O3S_SECRETS_FILE", "/config/secrets.env")
@@ -60,6 +66,8 @@ class InjectCredentials:
         self._sig = None
         # Maps each intercepted host to its resolved secret, or None until the secret is filled in.
         self._hosts = {}
+        # Every host the allowlist permits on HTTPS, matched against the name in the handshake.
+        self._allowed = ()
         self._load()
 
     def _load(self):
@@ -77,11 +85,21 @@ class InjectCredentials:
         except OSError:
             cfg, secrets = {}, {}
         hosts = {}
+        allowed = []
         for host, spec in cfg.items():
-            name = spec.get("secret") if isinstance(spec, dict) else None
+            if not isinstance(spec, dict):
+                continue
+            if 443 in (spec.get("ports") or ()):
+                allowed.append(host)
+            name = spec.get("secret")
             if name:
                 hosts[host] = secrets.get(name)  # None until the secret is filled in
         self._hosts = hosts
+        self._allowed = tuple(allowed)
+
+    def _permits(self, sni: str) -> bool:
+        """Accept a name the allowlist declares, covering its subdomains as dnsmasq does."""
+        return any(sni == host or sni.endswith("." + host) for host in self._allowed)
 
     def _masker(self, tok: bytes, host: str):
         """Mask the secret with same-length filler as a body streams past.
@@ -128,6 +146,20 @@ class InjectCredentials:
         self._load()
         if (data.client_hello.sni or "") not in self._hosts:
             data.ignore_connection = True
+
+    def server_connect(self, data: server_hooks.ServerConnectionHookData) -> None:
+        """Let the connection reach a destination the allowlist names, and kill the rest.
+
+        The address is already allow-listed by the gateway, which admits any host sharing it, so
+        this authorises the name the client asked for and closes the gap between the two.
+        """
+        self._load()
+        sni = data.client.sni or ""
+        if self._permits(sni):
+            return
+        data.server.error = "not in the o3s allowlist"
+        shown = re.sub(r"[^\w.:-]", "?", sni) if sni else "no SNI"
+        logging.warning(f"o3s: refused {shown} to {data.server.address}, not allow-listed")
 
     def requestheaders(self, flow: http.HTTPFlow) -> None:
         """Ask for an uncompressed reply, so an echoed secret stays visible on the way back."""

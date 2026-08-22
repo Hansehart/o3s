@@ -68,13 +68,11 @@ log "egress=$EGRESS_IF (gw $EGRESS_GW)  cage=$CAGE_IF ($CAGE_SUBNET, gw $GW_CAGE
 # 2. parse config.toml and build the rule sets.
 # Ports are mandatory and explicit, one ipset + FORWARD rule per distinct port. Static
 # IPv4/CIDR addresses are seeded straight into their sets. Domains are added by dnsmasq as it
-# resolves them. A non-empty `secret` column (from `secret = "..."` in config.toml) marks an
-# inject-host: its resolved IPs also land in the inject-hosts set for the PREROUTING REDIRECT.
+# resolves them.
 PORTS=""                    # distinct ports across the whole file
 declare -a STATIC_SEEDS=()  # "port address" for each IPv4/CIDR entry
 declare -a DOMAIN_LINES=()  # dnsmasq server=/domain/ + ipset=/domain/allowed-pA,allowed-pB lines per domain
 DOMAIN_COUNT=0              # distinct domains (DOMAIN_LINES holds two entries each)
-HAS_INJECT=""               # set once any host carries a secret (inject-hosts exist)
 
 # Read each host's ports and optional secret, failing on malformed config.
 CONFIG_TSV="$(yq -p=toml -o=tsv \
@@ -87,9 +85,8 @@ while IFS=$'\t' read -r addr ports secret; do
   case "$addr" in *:*) die "IPv6 address $addr unsupported (gateway is IPv4-only)";; esac
   is_ipv4 "$addr" || is_domain "$addr" || die "invalid address $addr"
   # Injection identifies the host by SNI, so an inject-host must be a domain.
-  if [ -n "$secret" ]; then
-    if is_ipv4 "$addr"; then die "inject-host $addr needs a hostname not an IP"; fi
-    HAS_INJECT=1
+  if [ -n "$secret" ] && is_ipv4 "$addr"; then
+    die "inject-host $addr needs a hostname not an IP"
   fi
 
   sets=""
@@ -107,7 +104,6 @@ while IFS=$'\t' read -r addr ports secret; do
   # ipset line capturing their resolved IPs. One server= line per domain covers all its ports
   # and subdomains.
   if ! is_ipv4 "$addr"; then
-    if [ -n "$secret" ]; then sets="${sets:+$sets,}inject-hosts"; fi
     DOMAIN_LINES+=("server=/$addr/$UPSTREAM_DNS")
     DOMAIN_LINES+=("ipset=/$addr/$sets")
     DOMAIN_COUNT=$((DOMAIN_COUNT + 1))
@@ -125,10 +121,9 @@ for p in $PORTS; do
   ipset create "allowed-p$p" hash:net timeout "$IPSET_TIMEOUT" -exist
 done
 
-# Resolved IPs of inject-hosts, matched by the nat PREROUTING REDIRECT below.
-if [ -n "$HAS_INJECT" ]; then
-  ipset create inject-hosts hash:net timeout "$IPSET_TIMEOUT" -exist
-fi
+# Addresses named directly in the config, which carry no name for the proxy to check and so
+# keep taking the address-only path.
+ipset create static-hosts hash:net timeout 0 -exist
 
 # 3. routing sysctls
 # ip_forward is enabled by docker-compose (sysctls:). /proc/sys is read-only in the
@@ -143,13 +138,14 @@ fi
 iptables -t nat -C POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE 2>/dev/null \
   || iptables -t nat -A POSTROUTING -s "$CAGE_SUBNET" -o "$EGRESS_IF" -j MASQUERADE
 
-# Divert cage traffic to inject-hosts on :443 to the local proxy sidecar, which injects the
-# upstream credential. Scoped to the inject-hosts set, so all other egress stays on the
-# FORWARD/ipset path. Redirected packets land on INPUT (local), admitted by the INPUT accept
+# Divert cage HTTPS to the local proxy sidecar, which authorises it by the name in the TLS
+# handshake and injects the upstream credential for inject-hosts. Scoped to addresses the
+# allowlist already permits on 443, so the FORWARD chain below still decides the address and the
+# proxy decides the name. Redirected packets land on INPUT (local), admitted by the INPUT accept
 # below. Append only, preserving Docker's 127.0.0.11 rules that live here too.
-if [ -n "$HAS_INJECT" ]; then
-  iptables -t nat -C PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$PROXY_PORT" 2>/dev/null \
-    || iptables -t nat -A PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set inject-hosts dst -j REDIRECT --to-ports "$PROXY_PORT"
+if ipset list -n allowed-p443 >/dev/null 2>&1; then
+  iptables -t nat -C PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set allowed-p443 dst -m set ! --match-set static-hosts dst -j REDIRECT --to-ports "$PROXY_PORT" 2>/dev/null \
+    || iptables -t nat -A PREROUTING -s "$CAGE_SUBNET" -p tcp --dport 443 -m set --match-set allowed-p443 dst -m set ! --match-set static-hosts dst -j REDIRECT --to-ports "$PROXY_PORT"
 fi
 
 # Clamp MSS to path MTU on SYN to avoid TLS stalls through the DinD double-NAT.
@@ -164,9 +160,7 @@ iptables -A INPUT -s "$CAGE_SUBNET" -p udp --dport 53 -j ACCEPT
 iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport 53 -j ACCEPT
 # Admit cage traffic REDIRECTed to the proxy sidecar. The REDIRECT rewrites the dst to a
 # local address, so the packet arrives on INPUT, where this rule admits it.
-if [ -n "$HAS_INJECT" ]; then
-  iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport "$PROXY_PORT" -j ACCEPT
-fi
+iptables -A INPUT -s "$CAGE_SUBNET" -p tcp --dport "$PROXY_PORT" -j ACCEPT
 iptables -A INPUT -p icmp -j ACCEPT
 
 # FORWARD: default-deny, so only allow-listed destinations leave the cage, each on the
@@ -188,6 +182,7 @@ if [ ${#STATIC_SEEDS[@]} -gt 0 ]; then
     read -r sp saddr <<<"$seed"
     # timeout 0 = keep permanently: static seeds are added once.
     ipset add -exist "allowed-p$sp" "$saddr" timeout 0
+    ipset add -exist static-hosts "$saddr" timeout 0
   done
 fi
 
