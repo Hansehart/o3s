@@ -27,7 +27,13 @@
 #        ports = [443]
 #
 # NOTES
-#        Edits take effect after: docker restart o3s-gateway o3s-mitm  (restart both due to shared network namespace)
+#        A host or port takes effect after
+#            docker restart o3s-gateway o3s-mitm
+#        (both, because they share a network namespace)
+#
+#        A new or removed `secret` also needs the cage, which re-exports the markers on start
+#            docker restart o3s
+#        (this reconnects its VS Code window)
 
 # Git hosting
 ["ghcr.io"]

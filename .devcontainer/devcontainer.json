@@ -59,7 +59,7 @@
     "remoteUser": "ubuntu",
     // Which folder is the default inside the dev container
     "workspaceFolder": "/home/ubuntu/o3s",
-    // Seed .env and the allowlist files from their templates if they don't exist yet
+    // Seed the allowlist from its template and derive the cage environment from it
     "initializeCommand": "bash .devcontainer/hooks/initialize.sh",
     // Probe that egress reaches the gateway on every container start
     "postStartCommand": "bash .devcontainer/hooks/post-start.sh",
