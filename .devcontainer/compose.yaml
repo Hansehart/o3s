@@ -66,11 +66,11 @@ services:
     volumes:
       # Signing CA, DH parameters and the real tokens
       - ${HOME}/.config/o3s:/config:ro
-      # Which hosts inject which secret
+      # Which hosts are allowed and which of them inject which secret
       - ./config.toml:/etc/o3s/config.toml:ro
       # Injection logic (not secret)
       - ./proxy/inject.py:/addons/inject.py:ro
-    # Transparently intercept the redirected inject-host traffic on the gateway's cage IP
+    # Take the redirected cage HTTPS, holding each connection until the handshake names its host
     command: >
       --mode transparent --showhost
       --set connection_strategy=lazy
