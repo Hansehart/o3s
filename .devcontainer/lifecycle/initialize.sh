@@ -51,13 +51,14 @@ MARKER="${MARKER:-o3s-$(openssl rand -hex 32)}"
 mv "$ENV_FILE.new" "$ENV_FILE"
 
 # Give each declared secret a slot to hold its real token, leaving filled-in lines untouched
-ADDED=""
+EMPTY=""
 for name in $SECRETS; do
-  grep -q "^$name=" "$SECRETS_DIR/secrets.env" || {
-    echo "$name=" >> "$SECRETS_DIR/secrets.env"
-    ADDED="${ADDED:+$ADDED }$name"
-  }
+  grep -q "^$name=" "$SECRETS_DIR/secrets.env" \
+    || echo "$name=" >> "$SECRETS_DIR/secrets.env"
+  # Report every slot still waiting for its token, on this run and each one after
+  grep -q "^$name=." "$SECRETS_DIR/secrets.env" \
+    || EMPTY="${EMPTY:+$EMPTY, }$name"
 done
-if [ -n "$ADDED" ]; then
-  log "add real tokens for $ADDED to $SECRETS_DIR/secrets.env"
+if [ -n "$EMPTY" ]; then
+  log "add real tokens to $SECRETS_DIR/secrets.env: $EMPTY"
 fi
