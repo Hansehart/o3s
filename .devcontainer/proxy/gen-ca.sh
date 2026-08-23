@@ -26,7 +26,7 @@ DH_PEM="$SECRETS_DIR/mitmproxy-dhparam.pem"
 umask 077
 install -d -m 700 "$SECRETS_DIR"
 
-# Create the self-signed root CA once; mitmproxy signs per-host leaf certs with it.
+# Create the self-signed root CA once, which the proxy signs per-host leaf certs with.
 if [ ! -f "$CA_PEM" ]; then
   if ! out="$(openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
     -keyout "$CA_PEM" -out "$PUBLIC_CRT" \
@@ -36,7 +36,7 @@ if [ ! -f "$CA_PEM" ]; then
     echo "$out" >&2
     die "could not generate CA"
   fi
-  cat "$PUBLIC_CRT" >> "$CA_PEM"   # mitmproxy reads one PEM: key then cert
+  cat "$PUBLIC_CRT" >> "$CA_PEM"   # the proxy reads one PEM holding the key then the cert
   log "generated egress-proxy CA"
 fi
 
