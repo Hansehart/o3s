@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        start.sh — bring the cage up behind the gateway
+#
+# DESCRIPTION
+#        The cage container's command: trusts this host's proxy CA, routes egress through
+#        the gateway, exports the markers the allowlist declares, then holds the container
+#        open for the dev container to attach to.
+#
+# SEE ALSO
+#        compose.yaml, env.sh
+
 set -euo pipefail
 
 # This script's own directory, holding the helpers it calls

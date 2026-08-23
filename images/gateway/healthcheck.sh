@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        healthcheck.sh — report that the gateway carries allow-listed traffic
+#
+# DESCRIPTION
+#        Resolves the first allow-listed host through the local resolver and opens a real
+#        connection to it, so the cage starts only once egress works.
+#
+# SEE ALSO
+#        compose.yaml, entrypoint.sh
+
 set -euo pipefail
 
 die() { echo "[healthcheck] ERROR: $*" >&2; exit 1; }

@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        gen-ca.sh — create this host's egress-proxy CA
+#
+# DESCRIPTION
+#        Generates the self-signed root the proxy signs per-host leaf certs with, the public
+#        cert the cage trusts, and the DH parameters the proxy loads at startup. Material
+#        that already exists is kept.
+#
+# SEE ALSO
+#        initialize.sh, inject.py
+
 set -euo pipefail
 
 log() { echo "[o3s] INFO: $*"; }
