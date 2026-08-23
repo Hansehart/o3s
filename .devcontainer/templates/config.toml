@@ -66,6 +66,9 @@
 ports = [443]
 ["github.com"]
 ports = [22, 443]
+["api.github.com"]
+ports  = [443]
+secret = "GH_TOKEN"
 ["gitlab.com"]
 ports = [22, 443]
 
