@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        entrypoint.sh — build the gateway's egress policy and run its resolver
+#
+# DESCRIPTION
+#        The gateway's PID 1: fails closed, locates the cage and egress interfaces, turns the
+#        allowlist into ipsets and iptables rules, diverts cage HTTPS to the proxy, then execs
+#        dnsmasq to resolve allowed domains and populate the sets.
+#
+# SEE ALSO
+#        config.toml, dnsmasq.conf.template, healthcheck.sh
+
 set -euo pipefail
 
 # Fixed image contract: config mount point and Docker's embedded resolver.

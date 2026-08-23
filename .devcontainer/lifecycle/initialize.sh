@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        initialize.sh — prepare this host before the cage is created
+#
+# DESCRIPTION
+#        Seeds each editable config file from its template, creates this host's egress-proxy
+#        CA and secret slots, and regenerates the values compose reads at create time.
+#
+# SEE ALSO
+#        devcontainer.json, gen-ca.sh, post-start.sh
+
 set -euo pipefail
 
 log() { echo "[o3s] INFO: $*"; }

@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# NAME
+#        env.sh — expose the allowlist's secret markers to every shell
+#
+# DESCRIPTION
+#        Reads the secret name each credential-inject host declares and writes a profile
+#        script pointing that variable at the marker, which the proxy swaps for the real
+#        token on egress.
+#
+# SEE ALSO
+#        config.toml, start.sh
+
 set -euo pipefail
 
 die() { echo "[o3s] ERROR: $*" >&2; exit 1; }
