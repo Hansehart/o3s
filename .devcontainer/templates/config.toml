@@ -2,46 +2,70 @@
 #        config.toml — o3s egress allowlist and credential injection
 #
 # SYNOPSIS
-#        ["host"]
+#        [{"host"|"*.host"}]
 #        ports  = [PORT, ...]
-#        secret = "NAME"          # optional
+#        secret = "NAME"
+#        inject = [{"header"|"query"|"body"}, ...]
 #
 # DESCRIPTION
-#        Each table is one host the gateway permits; everything else is default-denied. A
-#        host may be a domain (subdomains covered), an IPv4 host, or an IPv4 CIDR block.
+#        Each table is one host the gateway permits, and everything else is default-denied.
 #
-#        ports   Required. TCP port(s) allowed to the host.
-#        secret  Optional. Marks a credential-inject host: the gateway routes its HTTPS
-#                through the proxy, which swaps the o3s marker for this secret's token (from
-#                ~/.config/o3s/secrets.env).
+#        host    Required. A domain, an IPv4 host, or an IPv4 CIDR block. A domain matches
+#                that name alone, and the wildcard "*." prefix matches its subdomains at any
+#                depth, so list both forms to cover a name and everything under it. A name
+#                takes its own entry over any wildcard, and the closest wildcard over a
+#                broader one. A "*" anywhere else is rejected.
+#        ports   Required. The TCP ports allowed to the host.
+#        secret  Optional. Names the token this host's requests carry, which the proxy swaps
+#                in on egress so the cage holds the marker alone.
+#        inject  Optional, defaults to ["header"]. The request sites the proxy swaps the
+#                marker in, passing every other part of the request through as sent.
+#
+#                header  A request header, where a credential normally travels.
+#                query   A URL parameter.
+#                body    Request content, as OAuth token exchange posts it. Naming it lets
+#                        the proxy rewrite content an agent's conversation may quote.
 #
 # EXAMPLES
-#        ["github.com"]
+#        ["example.com"]
 #        ports = [22, 443]
 #
-#        ["api.openai.com"]
+#        ["*.example.com"]
+#        ports = [443]
+#
+#        ["api.example.net"]
 #        ports  = [443]
-#        secret = "OPENAI_API_KEY"
+#        secret = "EXAMPLE_API_KEY"
+#
+#        ["oauth.example.org"]
+#        ports  = [443]
+#        secret = "EXAMPLE_CLIENT_SECRET"
+#        inject = ["header", "body"]
 #
 #        ["10.8.0.0/24"]
 #        ports = [443]
 #
+# FILES
+#        ~/.config/o3s/secrets.env
+#                The real token behind each name a `secret` declares, held on the host.
+#
 # NOTES
-#        A host or port takes effect after
+#        A host, port or `inject` takes effect after
 #            docker restart o3s-gateway o3s-proxy
 #        (both, because they share a network namespace)
 #
 #        A new or removed `secret` also needs the cage, which re-exports the markers on start
 #            docker restart o3s
 #        (this reconnects its VS Code window)
+#
+# SEE ALSO
+#        entrypoint.sh, inject.py, secrets.env
 
 # Git hosting
 ["ghcr.io"]
 ports = [443]
 ["github.com"]
 ports = [22, 443]
-["githubusercontent.com"]
-ports = [443]
 ["gitlab.com"]
 ports = [22, 443]
 
@@ -67,9 +91,7 @@ ports = [443]
 ports = [443]
 ["production.cloudfront.docker.com"]
 ports = [443]
-["auth.docker.io"]
-ports = [443]
-["registry-1.docker.io"]
+["*.docker.io"]
 ports = [443]
 
 # Package managers
@@ -89,9 +111,7 @@ ports = [443]
 ports = [443]
 ["update.code.visualstudio.com"]
 ports = [443]
-["gallery.vsassets.io"]
-ports = [443]
-["gallerycdn.vsassets.io"]
+["*.vsassets.io"]
 ports = [443]
 ["main.vscode-cdn.net"]
 ports = [443]
