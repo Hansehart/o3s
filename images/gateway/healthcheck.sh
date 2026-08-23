@@ -14,11 +14,14 @@ set -euo pipefail
 
 die() { echo "[healthcheck] ERROR: $*" >&2; exit 1; }
 
-# Probe the first allow-listed host: connect to its address on its first port.
+# Probe the first allow-listed host by connecting to its address on its first port.
 read -r ADDR PORT < <(yq -p=toml -o=tsv '[ to_entries | .[0] | [.key, (.value.ports | .[0])] ]' /config/config.toml) || true
 [ -n "$ADDR" ] && [ -n "$PORT" ] || die "config has no usable host"
 
-# A domain resolves through dnsmasq (which also seeds the ipset); an IP is used as-is.
+# A wildcard entry probes its bare domain, which is what dnsmasq holds either way.
+ADDR="${ADDR#\*.}"
+
+# A domain resolves through dnsmasq, which also seeds the ipset, and an IP is used as-is.
 case "$ADDR" in
   *[a-zA-Z]*) IP="$(nslookup "$ADDR" 127.0.0.1 2>/dev/null \
                     | awk '/^Name/{f=1} f && /Address/ && $NF ~ /^[0-9]+(\.[0-9]+){3}$/ {print $NF; exit}')" || true ;;
