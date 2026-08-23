@@ -6,7 +6,7 @@
     ":configMigration"
   ],
   "timezone": "Europe/Berlin",
-  "labels": ["Renovate"],
+  "labels": ["renovate"],
   "semanticCommits": "enabled",
   "semanticCommitType": "build",
   "semanticCommitScope": "deps",
@@ -17,7 +17,7 @@
     "Age": "{{#if newVersion}}{{{newVersionAgeInDays}}} days{{/if}}"
   },
   "vulnerabilityAlerts": {
-    "addLabels": ["Security"]
+    "addLabels": ["security"]
   },
   "packageRules": [
     {
@@ -37,7 +37,7 @@
     {
       "description": "Label major updates so they get a deliberate review.",
       "matchUpdateTypes": ["major"],
-      "addLabels": ["Breaking"]
+      "addLabels": ["breaking"]
     }
   ]
 }
