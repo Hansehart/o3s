@@ -1,0 +1,35 @@
+{
+  "name": "o3s",
+  "displayName": "o3s",
+  "description": "VS Code tooling for the o3s dev sandbox.",
+  "version": "0.0.1",
+  "publisher": "hansehart",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "o3s.generateDevcontainer",
+        "title": "o3s: Generate devcontainer.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.0"
+  }
+}
