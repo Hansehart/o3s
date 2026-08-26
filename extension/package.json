@@ -12,7 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:.o3s"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -21,7 +21,25 @@
         "command": "o3s.generateDevcontainer",
         "title": "o3s: Generate devcontainer.json"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "o3s",
+          "title": "o3s",
+          "icon": "media/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "o3s": [
+        {
+          "id": "o3s.mainView",
+          "name": "o3s",
+          "type": "webview"
+        }
+      ]
+    }
   },
   "scripts": {
     "compile": "tsc -p ./",
