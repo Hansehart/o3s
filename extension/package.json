@@ -15,6 +15,12 @@
     "workspaceContains:.o3s"
   ],
   "main": "./out/extension.js",
+  "extensionKind": [
+    "ui"
+  ],
+  "extensionDependencies": [
+    "ms-vscode-remote.remote-containers"
+  ],
   "contributes": {
     "commands": [
       {
@@ -48,6 +54,10 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
     "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
   }
 }
