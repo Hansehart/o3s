@@ -1,0 +1,32 @@
+{
+  "id": "docker-in-docker",
+  "version": "1.2.0",
+  "name": "Docker in Docker",
+  "description": "Installs a Docker engine for building and running containers inside the dev container.",
+  "documentationURL": "https://github.com/hansehart/devcontainer-features/tree/main/src/docker-in-docker",
+  "options": {
+    "version": {
+      "type": "string",
+      "proposals": ["latest"],
+      "default": "latest",
+      "description": "Channel (latest) or an exact version (major.minor.patch)."
+    },
+    "daemonJson": {
+      "type": "string",
+      "default": "",
+      "description": "Daemon settings as JSON with backslash-escaped quotes, written to daemon.json."
+    }
+  },
+  "entrypoint": "/usr/local/share/docker-in-docker/docker-init.sh",
+  "privileged": false,
+  "containerEnv": {
+    "DOCKER_BUILDKIT": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-containers"
+      ]
+    }
+  }
+}
