@@ -12,7 +12,8 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:.o3s"
+    "workspaceContains:.o3s",
+    "onCommand:o3s.cloneAndSetup"
   ],
   "main": "./out/extension.js",
   "extensionKind": [
@@ -26,6 +27,10 @@
       {
         "command": "o3s.generateDevcontainer",
         "title": "o3s: Generate devcontainer.json"
+      },
+      {
+        "command": "o3s.cloneAndSetup",
+        "title": "o3s: Clone and Set Up"
       }
     ],
     "viewsContainers": {

@@ -12,8 +12,49 @@ body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
+}
+
+.features-page {
   display: flex;
   flex-direction: column;
+  height: 100%;
+}
+
+.open-project-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  height: 100%;
+  padding: 32px 20px;
+}
+
+.open-project-page .logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+}
+
+.open-project-page h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.open-project-page p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-descriptionForeground);
+  max-width: 220px;
+}
+
+.open-project-page button {
+  width: auto;
+  padding: 6px 16px;
 }
 
 .header {

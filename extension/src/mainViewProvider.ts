@@ -14,6 +14,10 @@ interface GenerateMessage {
   selected: string[];
 }
 
+interface CloneMessage {
+  type: "clone";
+}
+
 export class MainViewProvider implements vscode.WebviewViewProvider {
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -25,7 +29,12 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
     const root = projectRoot();
     if (!root) {
-      webviewView.webview.html = this.openProjectHtml();
+      webviewView.webview.html = this.openProjectHtml(webviewView.webview);
+      webviewView.webview.onDidReceiveMessage((message: CloneMessage) => {
+        if (message.type === "clone") {
+          vscode.commands.executeCommand("o3s.cloneAndSetup");
+        }
+      });
       return;
     }
 
@@ -44,7 +53,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
           { modal: true }
         );
       } catch {
-        webviewView.webview.html = this.openProjectHtml();
+        webviewView.webview.html = this.openProjectHtml(webviewView.webview);
       }
     });
   }
@@ -77,7 +86,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
   <link href="${styleUri}" rel="stylesheet">
 </head>
-<body>
+<body class="features-page">
   <div class="header">
     <h3>Features</h3>
     <p>Choose what o3s installs in your dev container.</p>
@@ -94,38 +103,27 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 </html>`;
   }
 
-  private openProjectHtml(): string {
+  private openProjectHtml(webview: vscode.Webview): string {
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", "main.css"));
+    const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", "icon.png"));
+    const nonce = getNonce();
     return /* html */ `<!DOCTYPE html>
 <html>
 <head>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      color: var(--vscode-foreground);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 8px;
-      padding: 32px 16px;
-    }
-    .icon {
-      font-size: 32px;
-    }
-    h3 {
-      margin: 0;
-      font-size: 15px;
-    }
-    p {
-      margin: 0;
-      color: var(--vscode-descriptionForeground);
-    }
-  </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+  <link href="${styleUri}" rel="stylesheet">
 </head>
-<body>
-  <div class="icon">&#9432;</div>
-  <h3>Open the o3s project</h3>
-  <p>This view only works inside the o3s repository.</p>
+<body class="open-project-page">
+  <img class="logo" src="${logoUri}" alt="o3s">
+  <h3>Welcome to o3s</h3>
+  <p>A sandboxed home for your AI agents - locked-down network, safe secrets. Clone the repo to get started.</p>
+  <button id="clone">Clone o3s</button>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    document.getElementById("clone").addEventListener("click", () => {
+      vscode.postMessage({ type: "clone" });
+    });
+  </script>
 </body>
 </html>`;
   }
