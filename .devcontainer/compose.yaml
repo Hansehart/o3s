@@ -104,6 +104,8 @@ services:
       - projects:/home/ubuntu/projects
       # Public proxy CA, folded into the trust store
       - ${HOME}/.config/o3s/mitmproxy-ca.crt:/usr/local/share/ca-certificates/mitmproxy-ca.crt:ro
+      # Image and layer store of the rootless daemon
+      - rootless-docker:/home/ubuntu/.local/share/docker
     # Limit ressource usage
     deploy:
       resources:
@@ -115,12 +117,13 @@ services:
         #    - driver: nvidia
         #      count: all
         #      capabilities: [gpu]
-    # Required by Docker-in-Docker
+    # Point the default route at the gateway
     cap_add:
       - NET_ADMIN
-    # Deny privilege escalation via setuid binaries
+    # Admit the namespaces and syscalls the rootless daemon creates
     security_opt:
-      - no-new-privileges:true
+      - apparmor=unconfined
+      - seccomp=./seccomp.json
     # Bring the cage up behind the gateway
     command: bash /home/ubuntu/o3s/.devcontainer/cage/start.sh
     # Its sole exit is the gateway
@@ -151,3 +154,4 @@ networks:
 volumes:
   features:
   projects:
+  rootless-docker:
