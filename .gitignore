@@ -1,4 +1,3 @@
-.claude/
 .devcontainer/.env
 .devcontainer/config.toml
 .devcontainer/devcontainer-lock.json
