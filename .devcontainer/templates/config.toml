@@ -50,12 +50,14 @@
 #                The real token behind each name a `secret` declares, held on the host.
 #
 # NOTES
+#        Run the commands below from .devcontainer/, where compose resolves the service names
+#
 #        A host, port or `inject` takes effect after
-#            docker restart o3s-gateway o3s-proxy
+#            docker compose restart gateway proxy
 #        (both, because they share a network namespace)
 #
 #        A new or removed `secret` also needs the cage, which re-exports the markers on start
-#            docker restart o3s
+#            docker compose restart cage
 #        (this reconnects its VS Code window)
 #
 # SEE ALSO

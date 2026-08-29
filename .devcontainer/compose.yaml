@@ -1,3 +1,19 @@
+# NAME
+#        compose.yaml — the o3s stack: cage, gateway and proxy.
+#
+# DESCRIPTION
+#        Three services on two networks. The cage sits alone in its network with
+#        the gateway as its only route and resolver. The gateway NATs the cage out through its
+#        own egress interface, resolves and admits the allow-listed hosts, and redirects cage
+#        HTTPS to the proxy, which shares the gateway's network namespace and injects this
+#        host's secrets into the hosts that declare one.
+#
+# USAGE
+#        Dev Containers extension, command "Dev Containers: Rebuild and Reopen in Container".
+#
+# SEE ALSO
+#        devcontainer.json, config.toml
+
 # Stack name
 name: o3s
 
@@ -7,90 +23,11 @@ x-gateway-ip: &gateway_ip 10.10.0.2
 
 # Apps deployed by stack
 services:
-  # Sole path to the internet for the dev container.
-  gateway:
-    image: ghcr.io/hansehart/o3s-gateway:latest
-    pull_policy: always
-    container_name: o3s-gateway
-    # Required to manage iptables/ipset and route/NAT the cage network
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    # Deny privilege escalation via setuid binaries
-    security_opt:
-      - no-new-privileges:true
-    # Forward IPv4 between the cage and egress interfaces so the gateway can route and NAT the cage out
-    sysctls:
-      - net.ipv4.ip_forward=1
-    # Cage identity: the gateway locates its cage/egress interfaces from this
-    environment:
-      GW_CAGE_IP: *gateway_ip
-    # The allow-listed hosts
-    volumes:
-      - ./config.toml:/config/config.toml:ro
-    networks:
-      cage:
-        ipv4_address: *gateway_ip
-      egress:
-    restart: unless-stopped
-    healthcheck:
-      # Resolve an allow-listed host through dnsmasq and open a real connection
-      test: ["CMD", "healthcheck.sh"]
-      # Probe fast during startup so the dev container's service_healthy gate clears in seconds
-      # Once healthy, re-check rarely
-      start_interval: 3s
-      start_period: 30s
-      interval: 10m
-      timeout: 5s
-      retries: 3
-
-  # Injects the upstream API key into inject-host HTTPS so the keys live here, never in the cage.
-  proxy:
-    image: ghcr.io/mitmproxy/mitmproxy:12.2.3@sha256:00b77b5d8804c8ad18cb6caefbf9d5849e895e8986c5ce011f4ae30f4385962f
-    pull_policy: missing
-    container_name: o3s-proxy
-    # Share the gateway's network namespace so its iptables REDIRECT lands here and resolves the original dst
-    network_mode: "service:gateway"
-    # Deny privilege escalation via setuid binaries
-    security_opt:
-      - no-new-privileges:true
-    # Run mitmdump as this host's user
-    entrypoint: ["mitmdump"]
-    user: ${O3S_UID}:${O3S_GID}
-    # Reach the mounted secrets by file permission alone
-    cap_drop:
-      - ALL
-    environment:
-      # The marker the addon swaps for real secrets
-      O3S_MARKER: ${O3S_MARKER}
-    volumes:
-      # Signing CA, DH parameters and the real tokens
-      - ${HOME}/.config/o3s:/config:ro
-      # Which hosts are allowed and which of them inject which secret
-      - ./config.toml:/etc/o3s/config.toml:ro
-      # Injection logic (not secret)
-      - ./proxy/inject.py:/addons/inject.py:ro
-    # Take the redirected cage HTTPS, holding each connection until the handshake names its host
-    command: >
-      --mode transparent --showhost
-      --set connection_strategy=lazy
-      --set block_global=false
-      --set onboarding=false
-      --set body_size_limit=100m
-      --set confdir=/config
-      --listen-host 10.10.0.2 --listen-port 8443
-      -s /addons/inject.py
-    restart: unless-stopped
-    # Shares the gateway's network namespace, so it must start after the gateway and restart with it.
-    depends_on:
-      gateway:
-        condition: service_healthy
-
-  o3s:
+  # The dev container the work happens in, reaching the internet through the gateway alone.
+  cage:
     image: ghcr.io/hansehart/o3s-base:latest
     # Dev Containers rebuilds this into a local vsc-o3s-<hash> image so only pull the base when absent
     pull_policy: missing
-    container_name: o3s
     environment:
       # Egress firewall gateway
       GATEWAY_IP: *gateway_ip
@@ -136,6 +73,94 @@ services:
     # Resolve through the gateway's dnsmasq
     dns:
       - *gateway_ip
+
+  # Sole path to the internet for the cage.
+  gateway:
+    image: ghcr.io/hansehart/o3s-gateway:latest
+    pull_policy: always
+    # Required to manage iptables/ipset and route/NAT the cage network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # Deny privilege escalation via setuid binaries
+    security_opt:
+      - no-new-privileges:true
+    # Forward IPv4 between the cage and egress interfaces so the gateway can route and NAT the cage out
+    sysctls:
+      - net.ipv4.ip_forward=1
+    # Cage identity: the gateway locates its cage/egress interfaces from this
+    environment:
+      GW_CAGE_IP: *gateway_ip
+    # The allow-listed hosts
+    volumes:
+      - ./config.toml:/config/config.toml:ro
+    networks:
+      cage:
+        ipv4_address: *gateway_ip
+      egress:
+    restart: unless-stopped
+    healthcheck:
+      # Resolve an allow-listed host through dnsmasq and open a real connection
+      test: ["CMD", "healthcheck.sh"]
+      # Probe fast during startup so the cage's service_healthy gate clears in seconds
+      # Once healthy, re-check rarely
+      start_interval: 3s
+      start_period: 30s
+      interval: 10m
+      timeout: 5s
+      retries: 3
+
+  # Injects the upstream API key into inject-host HTTPS so the keys live here, never in the cage.
+  proxy:
+    image: ghcr.io/mitmproxy/mitmproxy:12.2.3@sha256:00b77b5d8804c8ad18cb6caefbf9d5849e895e8986c5ce011f4ae30f4385962f
+    pull_policy: missing
+    # Share the gateway's network namespace so its iptables REDIRECT lands here and resolves the original dst
+    network_mode: "service:gateway"
+    # Deny privilege escalation via setuid binaries
+    security_opt:
+      - no-new-privileges:true
+    # Run mitmdump as this host's user
+    entrypoint: ["mitmdump"]
+    user: ${O3S_UID}:${O3S_GID}
+    # Reach the mounted secrets by file permission alone
+    cap_drop:
+      - ALL
+    environment:
+      # The marker the addon swaps for real secrets
+      O3S_MARKER: ${O3S_MARKER}
+    volumes:
+      # Signing CA, DH parameters and the real tokens
+      - ${HOME}/.config/o3s:/config:ro
+      # Which hosts are allowed and which of them inject which secret
+      - ./config.toml:/etc/o3s/config.toml:ro
+      # Injection logic (not secret)
+      - ./proxy/inject.py:/addons/inject.py:ro
+    # Take the redirected cage HTTPS, holding each connection until the handshake names its host
+    command:
+      - --mode
+      - transparent
+      - --showhost
+      - --set
+      - connection_strategy=lazy
+      - --set
+      - block_global=false
+      - --set
+      - onboarding=false
+      - --set
+      - body_size_limit=100m
+      - --set
+      - confdir=/config
+      - --listen-host
+      - *gateway_ip
+      - --listen-port
+      - "8443"
+      - -s
+      - /addons/inject.py
+    restart: unless-stopped
+    # Shares the gateway's network namespace, so it must start after the gateway and restart with it.
+    depends_on:
+      gateway:
+        condition: service_healthy
 
 networks:
   # Only the gateway (which NATs via its own egress interface) can reach the internet
