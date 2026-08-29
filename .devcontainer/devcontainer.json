@@ -25,6 +25,10 @@
             "stateDir": "/home/ubuntu/features/claude",
             "version": "latest"
         },
+        "ghcr.io/hansehart/devcontainer-features/codex:1": {
+            "stateDir": "/home/ubuntu/features/codex",
+            "version": "latest"
+        },
         "ghcr.io/hansehart/devcontainer-features/docker-in-docker:1": {
             "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}",
             "version": "latest"
@@ -41,9 +45,13 @@
         //     "version": "latest" // kubectl
         // },
         // "ghcr.io/hansehart/devcontainer-features/latex:1": {
-        //     "scheme": "scheme-full",
+        //     "scheme": "scheme-basic",
         //     "stateDir": "/home/ubuntu/features/latex",
         //     "version": "2025"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/node:1": {
+        //     "stateDir": "/home/ubuntu/features/node",
+        //     "version": "lts"
         // },
         // "ghcr.io/hansehart/devcontainer-features/uv:1": {
         //     "python": "3.13",
