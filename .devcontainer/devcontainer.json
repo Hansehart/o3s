@@ -16,7 +16,7 @@
     // Location of compose file
     "dockerComposeFile": "compose.yaml",
     // Which container from compose should be entered
-    "service": "o3s",
+    "service": "cage",
     // Additional software layered onto the o3s image.
     "features": {
         "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
