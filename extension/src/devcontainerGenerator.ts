@@ -11,6 +11,13 @@ export interface CatalogEntry {
 
 export type Catalog = Record<string, CatalogEntry>;
 
+/** The generated file, and the templates it is built from - the layout, stated once. */
+export const devcontainerPath = (root: string): string =>
+  path.join(root, ".devcontainer", "devcontainer.json");
+
+export const templatePath = (root: string, name: string): string =>
+  path.join(root, ".devcontainer", "templates", name);
+
 export function projectRoot(): string | undefined {
   return vscode.workspace.workspaceFolders
     ?.map((folder) => folder.uri.fsPath)
@@ -22,29 +29,23 @@ function readJsonc(filePath: string): any {
 }
 
 export function loadCatalog(root: string): Catalog {
-  const catalogPath = path.join(root, ".devcontainer", "templates", "features.json");
-  return JSON.parse(fs.readFileSync(catalogPath, "utf8"));
+  return readJsonc(templatePath(root, "features.json"));
 }
 
 export function loadCurrentSelection(root: string, catalog: Catalog): string[] {
-  const devcontainerPath = path.join(root, ".devcontainer", "devcontainer.json");
-  if (!fs.existsSync(devcontainerPath)) {
+  const current = devcontainerPath(root);
+  if (!fs.existsSync(current)) {
     return [];
   }
-  const current = readJsonc(devcontainerPath);
-  const currentFeatures = Object.keys(current?.features ?? {});
-  return currentFeatures.filter((id) => id in catalog);
+  return Object.keys(readJsonc(current)?.features ?? {}).filter((id) => id in catalog);
 }
 
-export function generateDevcontainer(root: string, selected: string[]) {
-  const skeletonPath = path.join(root, ".devcontainer", "templates", "devcontainer.json");
-  const catalog = loadCatalog(root);
-  const skeleton = readJsonc(skeletonPath);
+export function generateDevcontainer(root: string, catalog: Catalog, selected: string[]) {
+  const skeleton = readJsonc(templatePath(root, "devcontainer.json"));
 
   skeleton.features = Object.fromEntries(
     selected.filter((id) => id in catalog).map((id) => [id, catalog[id].options])
   );
 
-  const outPath = path.join(root, ".devcontainer", "devcontainer.json");
-  fs.writeFileSync(outPath, JSON.stringify(skeleton, null, 4) + "\n", "utf8");
+  fs.writeFileSync(devcontainerPath(root), JSON.stringify(skeleton, null, 4) + "\n", "utf8");
 }

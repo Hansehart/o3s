@@ -3,20 +3,12 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { execFileSync } from "child_process";
-import { Catalog } from "../../devcontainerGenerator";
 import { WebviewAssets, featuresHtml, openProjectHtml } from "../../webviewHtml";
+import { CATALOG, CLAUDE, GITHUB } from "./fixtures";
 import { themeCss } from "./theme";
 
 const CHROME = "chrome-headless-shell";
 const MEDIA = path.resolve(__dirname, "..", "..", "..", "media");
-
-const CLAUDE = "ghcr.io/hansehart/devcontainer-features/claude-code:1";
-const GITHUB = "ghcr.io/devcontainers/features/github-cli:1";
-
-const CATALOG: Catalog = {
-  [CLAUDE]: { label: "Claude Code CLI", description: "Installs the CLI.", options: {} },
-  [GITHUB]: { label: "GitHub CLI", description: "Installs gh.", options: {} },
-};
 
 const ASSETS: WebviewAssets = {
   cspSource: "file:",

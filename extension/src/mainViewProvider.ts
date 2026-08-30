@@ -8,14 +8,7 @@ import {
   projectRoot,
 } from "./devcontainerGenerator";
 
-interface GenerateMessage {
-  type: "generate";
-  selected: string[];
-}
-
-interface CloneMessage {
-  type: "clone";
-}
+type WebviewMessage = { type: "generate"; selected: string[] } | { type: "clone" };
 
 export class MainViewProvider implements vscode.WebviewViewProvider {
   constructor(
@@ -42,33 +35,34 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     const assets = this.assets(webviewView.webview);
 
     const root = projectRoot();
-    if (!root) {
+    if (root) {
+      this.log.info(`o3s checkout: ${root}`);
+      const catalog = loadCatalog(root);
+      const selected = new Set(loadCurrentSelection(root, catalog));
+      webviewView.webview.html = featuresHtml(assets, catalog, selected);
+    } else {
       this.log.info("no .o3s marker in any workspace folder, showing the clone page");
       webviewView.webview.html = openProjectHtml(assets);
-      webviewView.webview.onDidReceiveMessage(async (message: CloneMessage) => {
-        if (message.type === "clone") {
-          try {
-            await vscode.commands.executeCommand("o3s.cloneAndSetup");
-          } catch (error) {
-            this.log.error(asError(error));
-            vscode.window.showErrorMessage(`o3s: clone failed - ${error}`);
-          }
-        }
-      });
-      return;
     }
-    this.log.info(`o3s checkout: ${root}`);
 
-    const catalog = loadCatalog(root);
-    const selected = new Set(loadCurrentSelection(root, catalog));
-    webviewView.webview.html = featuresHtml(assets, catalog, selected);
-
-    webviewView.webview.onDidReceiveMessage((message: GenerateMessage) => {
-      if (message.type !== "generate") {
+    const listener = webviewView.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
+      if (message.type === "clone") {
+        try {
+          await vscode.commands.executeCommand("o3s.cloneAndSetup");
+        } catch (error) {
+          // o3s.cloneAndSetup handles clone failures itself and resolves, so only a
+          // failed dispatch reaches here - the case that is otherwise silent.
+          this.log.error(asError(error));
+          vscode.window.showErrorMessage(`o3s: could not start the clone - ${error}`);
+        }
+        return;
+      }
+      if (!root) {
         return;
       }
       try {
-        generateDevcontainer(root, message.selected);
+        // Read the catalog at write time, so an edit made while the panel is open applies.
+        generateDevcontainer(root, loadCatalog(root), message.selected);
         vscode.window.showInformationMessage(
           "devcontainer.json generated. Press Ctrl/Cmd+Shift+P and run \"Rebuild and Reopen in Container\" to apply it.",
           { modal: true }
@@ -76,8 +70,8 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
       } catch (error) {
         this.log.error(asError(error));
         vscode.window.showErrorMessage(`o3s: could not write devcontainer.json - ${error}`);
-        webviewView.webview.html = openProjectHtml(assets);
       }
     });
+    webviewView.onDidDispose(() => listener.dispose());
   }
 }

@@ -3,7 +3,7 @@
  * A webview inherits these from the active theme; a page opened straight in a
  * browser does not, and every themed rule silently collapses without them.
  */
-export const DARK_THEME_VARIABLES: Readonly<Record<string, string>> = {
+const DARK_THEME_VARIABLES: Readonly<Record<string, string>> = {
   "--vscode-font-family": "system-ui, sans-serif",
   "--vscode-font-size": "13px",
   "--vscode-foreground": "#cccccc",

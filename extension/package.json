@@ -12,8 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:.o3s",
-    "onCommand:o3s.cloneAndSetup"
+    "workspaceContains:.o3s"
   ],
   "main": "./out/extension.js",
   "extensionKind": [

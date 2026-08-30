@@ -4,27 +4,15 @@ import * as os from "os";
 import * as path from "path";
 import {
   Catalog,
+  devcontainerPath,
   generateDevcontainer,
   loadCatalog,
   loadCurrentSelection,
+  templatePath,
 } from "../../devcontainerGenerator";
+import { CATALOG, CLAUDE, GITHUB } from "./fixtures";
 
-const CLAUDE = "ghcr.io/hansehart/devcontainer-features/claude-code:1";
-const GITHUB = "ghcr.io/devcontainers/features/github-cli:1";
 const UNKNOWN = "ghcr.io/devcontainers/features/never-in-the-catalog:1";
-
-const CATALOG: Catalog = {
-  [CLAUDE]: {
-    label: "Claude Code CLI",
-    description: "Installs the Claude Code CLI on a selectable channel.",
-    options: { version: "latest" },
-  },
-  [GITHUB]: {
-    label: "GitHub CLI",
-    description: "Installs the GitHub CLI (gh).",
-    options: { version: "latest" },
-  },
-};
 
 const SKELETON = `// NAME
 //        devcontainer.json - the o3s dev container
@@ -44,17 +32,16 @@ suite("devcontainerGenerator", () => {
   let root: string;
 
   const writeDevcontainer = (contents: string): void =>
-    fs.writeFileSync(path.join(root, ".devcontainer", "devcontainer.json"), contents, "utf8");
+    fs.writeFileSync(devcontainerPath(root), contents, "utf8");
 
   const readDevcontainer = (): Devcontainer =>
-    JSON.parse(fs.readFileSync(path.join(root, ".devcontainer", "devcontainer.json"), "utf8"));
+    JSON.parse(fs.readFileSync(devcontainerPath(root), "utf8"));
 
   setup(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-test-"));
-    const templates = path.join(root, ".devcontainer", "templates");
-    fs.mkdirSync(templates, { recursive: true });
-    fs.writeFileSync(path.join(templates, "features.json"), JSON.stringify(CATALOG), "utf8");
-    fs.writeFileSync(path.join(templates, "devcontainer.json"), SKELETON, "utf8");
+    fs.mkdirSync(path.dirname(templatePath(root, "features.json")), { recursive: true });
+    fs.writeFileSync(templatePath(root, "features.json"), JSON.stringify(CATALOG), "utf8");
+    fs.writeFileSync(templatePath(root, "devcontainer.json"), SKELETON, "utf8");
   });
 
   teardown(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -85,7 +72,7 @@ suite("devcontainerGenerator", () => {
   });
 
   test("generateDevcontainer writes the selection onto the skeleton", () => {
-    generateDevcontainer(root, [GITHUB]);
+    generateDevcontainer(root, CATALOG, [GITHUB]);
     const written: Devcontainer = readDevcontainer();
     assert.strictEqual(written.name, "o3s");
     assert.strictEqual(written.service, "cage");
@@ -93,17 +80,14 @@ suite("devcontainerGenerator", () => {
   });
 
   test("generateDevcontainer ignores ids absent from the catalog", () => {
-    generateDevcontainer(root, [GITHUB, UNKNOWN]);
+    generateDevcontainer(root, CATALOG, [GITHUB, UNKNOWN]);
     assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [GITHUB]);
   });
 
   test("generateDevcontainer replaces an existing file and drops its comments", () => {
     writeDevcontainer(SKELETON);
-    generateDevcontainer(root, [CLAUDE]);
-    const contents = fs.readFileSync(
-      path.join(root, ".devcontainer", "devcontainer.json"),
-      "utf8"
-    );
+    generateDevcontainer(root, CATALOG, [CLAUDE]);
+    const contents = fs.readFileSync(devcontainerPath(root), "utf8");
     assert.ok(!contents.includes("//"), "comments do not survive a round trip");
     assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [CLAUDE]);
   });

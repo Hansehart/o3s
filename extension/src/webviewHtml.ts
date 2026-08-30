@@ -1,5 +1,5 @@
+import { randomUUID } from "crypto";
 import escapeHtml from "escape-html";
-import { getNonce } from "./getNonce";
 import { Catalog } from "./devcontainerGenerator";
 
 /** The webview-resolved locations the pages link to, as `asWebviewUri` returns them. */
@@ -10,14 +10,37 @@ export interface WebviewAssets {
   logoUri: string;
 }
 
+/**
+ * The shell every page shares: the nonce, the stylesheet and the script both
+ * pages link, and the baseline policy. Hyphens are legal in a `nonce-` source
+ * expression, so a UUID serves directly. `extraCsp` carries the directives a
+ * single page needs, so no page is granted a source only its neighbour uses.
+ */
+function page(
+  assets: WebviewAssets,
+  bodyClass: string,
+  body: string,
+  extraCsp = ""
+): string {
+  const nonce = randomUUID();
+  return /* html */ `<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; ${extraCsp}style-src ${assets.cspSource}; script-src 'nonce-${nonce}';">
+  <link href="${assets.styleUri}" rel="stylesheet">
+</head>
+<body class="${bodyClass}">
+${body}
+  <script nonce="${nonce}" src="${assets.scriptUri}"></script>
+</body>
+</html>`;
+}
+
 export function featuresHtml(
   assets: WebviewAssets,
   catalog: Catalog,
   selected: Set<string>
 ): string {
-  const nonce = getNonce();
-  const total = Object.keys(catalog).length;
-
   const items = Object.entries(catalog)
     .map(([id, entry]) => {
       const checked = selected.has(id) ? "checked" : "";
@@ -34,14 +57,10 @@ export function featuresHtml(
     })
     .join("\n");
 
-  return /* html */ `<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${assets.cspSource}; script-src 'nonce-${nonce}';">
-  <link href="${assets.styleUri}" rel="stylesheet">
-</head>
-<body class="features-page">
-  <div class="header">
+  return page(
+    assets,
+    "features-page",
+    /* html */ `  <div class="header">
     <h3>Features</h3>
     <p>Choose what o3s installs in your dev container.</p>
   </div>
@@ -51,31 +70,18 @@ export function featuresHtml(
   <div class="footer">
     <span id="count"></span>
     <button id="generate">Generate</button>
-  </div>
-  <script nonce="${nonce}" data-total="${total}" src="${assets.scriptUri}"></script>
-</body>
-</html>`;
+  </div>`
+  );
 }
 
 export function openProjectHtml(assets: WebviewAssets): string {
-  const nonce = getNonce();
-  return /* html */ `<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${assets.cspSource}; style-src ${assets.cspSource}; script-src 'nonce-${nonce}';">
-  <link href="${assets.styleUri}" rel="stylesheet">
-</head>
-<body class="open-project-page">
-  <img class="logo" src="${assets.logoUri}" alt="o3s">
+  return page(
+    assets,
+    "open-project-page",
+    /* html */ `  <img class="logo" src="${assets.logoUri}" alt="o3s">
   <h3>Welcome to o3s</h3>
   <p>A sandboxed home for your AI agents - locked-down network, safe secrets. Clone the repo to get started.</p>
-  <button id="clone">Clone o3s</button>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    document.getElementById("clone").addEventListener("click", () => {
-      vscode.postMessage({ type: "clone" });
-    });
-  </script>
-</body>
-</html>`;
+  <button id="clone">Clone o3s</button>`,
+    `img-src ${assets.cspSource}; `
+  );
 }
