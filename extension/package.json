@@ -47,7 +47,20 @@
         {
           "id": "o3s.mainView",
           "name": "o3s",
-          "type": "webview"
+          "type": "webview",
+          "when": "remoteName == ''"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "o3s.generateDevcontainer",
+          "when": "remoteName == ''"
+        },
+        {
+          "command": "o3s.cloneAndSetup",
+          "when": "remoteName == ''"
         }
       ]
     }
