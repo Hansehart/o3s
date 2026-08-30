@@ -41,8 +41,6 @@ services:
       - projects:/home/ubuntu/projects
       # Public proxy CA, folded into the trust store
       - ${HOME}/.config/o3s/mitmproxy-ca.crt:/usr/local/share/ca-certificates/mitmproxy-ca.crt:ro
-      # Image and layer store of the rootless daemon
-      - rootless-docker:/home/ubuntu/.local/share/docker
     # Limit ressource usage
     deploy:
       resources:
@@ -57,10 +55,19 @@ services:
     # Point the default route at the gateway
     cap_add:
       - NET_ADMIN
-    # Admit the namespaces and syscalls the rootless daemon creates
+    # Capabilities the daemon leaves unused, one of them creating device nodes at will
+    cap_drop:
+      - MKNOD
+      - NET_RAW
+      - AUDIT_WRITE
+    # The device the userspace network stack builds its tap on
+    devices:
+      - /dev/net/tun
+    # The namespaces and mounts the daemon creates, over a procfs left open enough to mount
     security_opt:
       - apparmor=unconfined
       - seccomp=./seccomp.json
+      - systempaths=unconfined
     # Bring the cage up behind the gateway
     command: bash /home/ubuntu/o3s/.devcontainer/cage/start.sh
     # Its sole exit is the gateway
@@ -179,4 +186,3 @@ networks:
 volumes:
   features:
   projects:
-  rootless-docker:
