@@ -24,12 +24,17 @@ export function projectRoot(): string | undefined {
     .find((folderPath) => fs.existsSync(path.join(folderPath, ".o3s")));
 }
 
-function readJsonc(filePath: string): any {
-  return parseJsonc(fs.readFileSync(filePath, "utf8"));
+/**
+ * The templates ship with the checkout, so one that will not parse is a broken
+ * install rather than a case to recover from: the shape is asserted here and a
+ * bad file surfaces as a throw the provider reports.
+ */
+export function readJsonc<T>(filePath: string): T {
+  return parseJsonc(fs.readFileSync(filePath, "utf8")) as T;
 }
 
 export function loadCatalog(root: string): Catalog {
-  return readJsonc(templatePath(root, "features.json"));
+  return readJsonc<Catalog>(templatePath(root, "features.json"));
 }
 
 export function loadCurrentSelection(root: string, catalog: Catalog): string[] {
@@ -37,11 +42,14 @@ export function loadCurrentSelection(root: string, catalog: Catalog): string[] {
   if (!fs.existsSync(current)) {
     return [];
   }
-  return Object.keys(readJsonc(current)?.features ?? {}).filter((id) => id in catalog);
+  // Unlike the templates, the generated file is the user's to edit, so it may
+  // well be empty or half-written by the time this reads it.
+  const parsed = readJsonc<{ features?: Record<string, unknown> } | undefined>(current);
+  return Object.keys(parsed?.features ?? {}).filter((id) => id in catalog);
 }
 
 export function generateDevcontainer(root: string, catalog: Catalog, selected: string[]) {
-  const skeleton = readJsonc(templatePath(root, "devcontainer.json"));
+  const skeleton = readJsonc<Record<string, unknown>>(templatePath(root, "devcontainer.json"));
 
   skeleton.features = Object.fromEntries(
     selected.filter((id) => id in catalog).map((id) => [id, catalog[id].options])
