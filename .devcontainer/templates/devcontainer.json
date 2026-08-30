@@ -16,7 +16,7 @@
     // Location of compose file
     "dockerComposeFile": "compose.yaml",
     // Which container from compose should be entered
-    "service": "o3s",
+    "service": "cage",
     // Non-root user VS Code connects as
     "remoteUser": "ubuntu",
     // Which folder is the default inside the dev container

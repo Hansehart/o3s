@@ -9,6 +9,14 @@
             "version": "latest"
         }
     },
+    "ghcr.io/hansehart/devcontainer-features/codex:1": {
+        "label": "Codex CLI",
+        "description": "Installs the Codex CLI on a selectable channel.",
+        "options": {
+            "stateDir": "/home/ubuntu/features/codex",
+            "version": "latest"
+        }
+    },
     "ghcr.io/hansehart/devcontainer-features/docker-in-docker:1": {
         "label": "Docker in Docker",
         "description": "Installs a Docker engine for building and running containers inside the dev container.",
