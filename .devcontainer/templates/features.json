@@ -17,7 +17,7 @@
             "version": "latest"
         }
     },
-    "ghcr.io/hansehart/devcontainer-features/docker-in-docker:1": {
+    "ghcr.io/hansehart/devcontainer-features/docker-in-docker:2": {
         "label": "Docker in Docker",
         "description": "Installs a Docker engine for building and running containers inside the dev container.",
         "options": {
@@ -52,7 +52,7 @@
         "label": "LaTeX (TeX Live)",
         "description": "Installs TeX Live from a pinned tlnet-final snapshot (selectable scheme) and puts the binaries on PATH.",
         "options": {
-            "scheme": "scheme-full",
+            "scheme": "scheme-basic",
             "stateDir": "/home/ubuntu/features/latex",
             "version": "2025"
         }
@@ -74,10 +74,11 @@
             "version": "latest"
         }
     },
-    "ghcr.io/devcontainers/features/node:2": {
-        "label": "Node.js (via nvm), yarn and pnpm",
-        "description": "Installs Node.js, nvm, yarn, pnpm, and needed dependencies.",
+    "ghcr.io/hansehart/devcontainer-features/node:1": {
+        "label": "Node.js",
+        "description": "Installs Node.js and npm on a selectable channel.",
         "options": {
+            "stateDir": "/home/ubuntu/features/node",
             "version": "lts"
         }
     }
