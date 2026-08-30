@@ -11,7 +11,7 @@
             "outFiles": [
                 "${workspaceFolder}/extension/out/**/*.js"
             ],
-            "preLaunchTask": "npm: watch - extension"
+            "preLaunchTask": "${defaultBuildTask}"
         }
     ]
 }

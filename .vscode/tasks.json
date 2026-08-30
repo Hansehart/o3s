@@ -5,7 +5,6 @@
             "type": "npm",
             "script": "watch",
             "path": "extension",
-            "label": "npm: watch - extension",
             "problemMatcher": "$tsc-watch",
             "isBackground": true,
             "presentation": {
