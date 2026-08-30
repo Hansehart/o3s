@@ -19,7 +19,7 @@ If you are not willing to trade security for productivity, o3s is a match. Let a
 
 [Anthropic][ref] and [OpenAI][cdx] both ship a reference devcontainer, and both tell you to bring your own network controls. o3s is what that looks like when someone does: productivity on steroids, and deterministic enforcement to get there.
 
-I do software development for a living, and o3s is my answer to keeping pace: several projects at once, and several features inside each. AI will not be the death of good engineering. Not here. This is how I build with it and still stand behind every line that ships.
+We do software development for a living, and o3s is our answer to keeping pace: several projects at once, and several features inside each. AI will not be the death of good engineering. Not here. This is how we build with it and still stand behind every line that ships.
 
 ## Security
 
