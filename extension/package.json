@@ -30,6 +30,11 @@
       {
         "command": "o3s.cloneAndSetup",
         "title": "o3s: Clone and Set Up"
+      },
+      {
+        "command": "o3s.refreshCatalog",
+        "title": "o3s: Refresh Feature Catalog",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -60,6 +65,17 @@
         {
           "command": "o3s.cloneAndSetup",
           "when": "remoteName == ''"
+        },
+        {
+          "command": "o3s.refreshCatalog",
+          "when": "remoteName == ''"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "o3s.refreshCatalog",
+          "group": "navigation",
+          "when": "view == o3s.mainView"
         }
       ]
     }

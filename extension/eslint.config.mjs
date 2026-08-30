@@ -47,6 +47,9 @@ export default tseslint.config(
       globals: {
         acquireVsCodeApi: "readonly",
         document: "readonly",
+        HTMLElement: "readonly",
+        HTMLInputElement: "readonly",
+        HTMLSelectElement: "readonly",
       },
     },
   }

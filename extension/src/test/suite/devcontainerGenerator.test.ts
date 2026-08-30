@@ -3,16 +3,15 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import {
-  Catalog,
   devcontainerPath,
   generateDevcontainer,
-  loadCatalog,
   loadCurrentSelection,
   templatePath,
 } from "../../devcontainerGenerator";
-import { CATALOG, CLAUDE, GITHUB } from "./fixtures";
+import { buildCatalog } from "../../catalog";
+import { CATALOG, CLAUDE, GITHUB, OURS, OVERRIDES, PUBLISHED, entryFor } from "./fixtures";
 
-const UNKNOWN = "ghcr.io/devcontainers/features/never-in-the-catalog:1";
+const UNKNOWN = "ghcr.io/devcontainers/features/never-in-the-catalog";
 
 const SKELETON = `// NAME
 //        devcontainer.json - the o3s dev container
@@ -25,7 +24,7 @@ const SKELETON = `// NAME
 interface Devcontainer {
   name?: string;
   service?: string;
-  features?: Record<string, unknown>;
+  features?: Record<string, Record<string, unknown>>;
 }
 
 suite("devcontainerGenerator", () => {
@@ -39,56 +38,102 @@ suite("devcontainerGenerator", () => {
 
   setup(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-test-"));
-    fs.mkdirSync(path.dirname(templatePath(root, "features.json")), { recursive: true });
-    fs.writeFileSync(templatePath(root, "features.json"), JSON.stringify(CATALOG), "utf8");
+    fs.mkdirSync(path.dirname(templatePath(root, "devcontainer.json")), { recursive: true });
     fs.writeFileSync(templatePath(root, "devcontainer.json"), SKELETON, "utf8");
   });
 
   teardown(() => fs.rmSync(root, { recursive: true, force: true }));
 
-  test("loadCatalog reads the feature catalog", () => {
-    const catalog: Catalog = loadCatalog(root);
-    assert.deepStrictEqual(Object.keys(catalog), [CLAUDE, GITHUB]);
-    assert.strictEqual(catalog[GITHUB].label, "GitHub CLI");
-  });
-
-  test("loadCurrentSelection is empty when no devcontainer.json exists", () => {
-    assert.deepStrictEqual(loadCurrentSelection(root, CATALOG), []);
-  });
-
-  test("loadCurrentSelection reads features through the comments", () => {
-    writeDevcontainer(`// a leading comment
-{
-    // and an inline one
-    "features": { "${CLAUDE}": {} }
-}
-`);
-    assert.deepStrictEqual(loadCurrentSelection(root, CATALOG), [CLAUDE]);
-  });
-
-  test("loadCurrentSelection drops features absent from the catalog", () => {
-    writeDevcontainer(`{ "features": { "${CLAUDE}": {}, "${UNKNOWN}": {} } }`);
-    assert.deepStrictEqual(loadCurrentSelection(root, CATALOG), [CLAUDE]);
-  });
-
-  test("generateDevcontainer writes the selection onto the skeleton", () => {
-    generateDevcontainer(root, CATALOG, [GITHUB]);
-    const written: Devcontainer = readDevcontainer();
+  test("writes the selection onto the skeleton, tagged with the published major", () => {
+    generateDevcontainer(root, CATALOG, [{ base: GITHUB, values: entryFor(GITHUB).values }]);
+    const written = readDevcontainer();
     assert.strictEqual(written.name, "o3s");
     assert.strictEqual(written.service, "cage");
-    assert.deepStrictEqual(written.features, { [GITHUB]: { version: "latest" } });
+    assert.deepStrictEqual(Object.keys(written.features ?? {}), [`${GITHUB}:1`]);
   });
 
-  test("generateDevcontainer ignores ids absent from the catalog", () => {
-    generateDevcontainer(root, CATALOG, [GITHUB, UNKNOWN]);
-    assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [GITHUB]);
+  test("a value equal to the published default is left out", () => {
+    generateDevcontainer(root, CATALOG, [{ base: GITHUB, values: { version: "latest" } }]);
+    assert.deepStrictEqual(readDevcontainer().features?.[`${GITHUB}:1`], {});
   });
 
-  test("generateDevcontainer replaces an existing file and drops its comments", () => {
+  test("a value the user changed is written", () => {
+    generateDevcontainer(root, CATALOG, [{ base: GITHUB, values: { version: "2.0" } }]);
+    assert.deepStrictEqual(readDevcontainer().features?.[`${GITHUB}:1`], { version: "2.0" });
+  });
+
+  test("the o3s overrides survive, because they differ from the feature's defaults", () => {
+    generateDevcontainer(root, CATALOG, [{ base: CLAUDE, values: entryFor(CLAUDE).values }]);
+    assert.deepStrictEqual(readDevcontainer().features?.[`${CLAUDE}:1`], {
+      stateDir: "/home/ubuntu/features/claude",
+      disableNonessentialTraffic: true,
+    });
+  });
+
+  test("an option the feature does not publish never reaches the file", () => {
+    generateDevcontainer(root, CATALOG, [{ base: GITHUB, values: { version: "2.0", bogus: "x" } }]);
+    assert.deepStrictEqual(readDevcontainer().features?.[`${GITHUB}:1`], { version: "2.0" });
+  });
+
+  test("a base absent from the catalog is ignored", () => {
+    generateDevcontainer(root, CATALOG, [
+      { base: GITHUB, values: {} },
+      { base: UNKNOWN, values: {} },
+    ]);
+    assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [`${GITHUB}:1`]);
+  });
+
+  test("replaces an existing file and drops its comments", () => {
     writeDevcontainer(SKELETON);
-    generateDevcontainer(root, CATALOG, [CLAUDE]);
+    generateDevcontainer(root, CATALOG, [{ base: CLAUDE, values: {} }]);
     const contents = fs.readFileSync(devcontainerPath(root), "utf8");
     assert.ok(!contents.includes("//"), "comments do not survive a round trip");
-    assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [CLAUDE]);
+    assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [`${CLAUDE}:1`]);
+  });
+
+  suite("loadCurrentSelection", () => {
+    test("is empty when no devcontainer.json exists", () => {
+      assert.deepStrictEqual(loadCurrentSelection(root, CATALOG), []);
+    });
+
+    test("reads the selection and its values through the comments", () => {
+      writeDevcontainer(`// a leading comment
+{
+    // and an inline one
+    "features": { "${CLAUDE}:1": { "stateDir": "/elsewhere" } }
+}
+`);
+      assert.deepStrictEqual(loadCurrentSelection(root, CATALOG), [
+        { base: CLAUDE, values: { stateDir: "/elsewhere" } },
+      ]);
+    });
+
+    test("a feature written at an older major is still recognised", () => {
+      const bumped = buildCatalog(
+        { collections: [OURS], overrides: OVERRIDES },
+        new Map([[OURS, PUBLISHED[OURS].map((f) => ({ ...f, version: "2.0.0" }))]])
+      );
+      writeDevcontainer(`{ "features": { "${CLAUDE}:1": {} } }`);
+      assert.deepStrictEqual(loadCurrentSelection(root, bumped), [{ base: CLAUDE, values: {} }]);
+    });
+
+    test("a renamed feature is matched through its legacy id, not dropped", () => {
+      const renamed = buildCatalog(
+        { collections: [OURS], overrides: {} },
+        new Map([[OURS, [{ ...PUBLISHED[OURS][0], id: "claude", legacyIds: ["claude-code"] }]]])
+      );
+      writeDevcontainer(`{ "features": { "${CLAUDE}:1": { "version": "stable" } } }`);
+      assert.deepStrictEqual(loadCurrentSelection(root, renamed), [
+        { base: `${OURS}/claude`, values: { version: "stable" } },
+      ]);
+    });
+
+    test("drops features absent from the catalog", () => {
+      writeDevcontainer(`{ "features": { "${CLAUDE}:1": {}, "${UNKNOWN}:1": {} } }`);
+      assert.deepStrictEqual(
+        loadCurrentSelection(root, CATALOG).map((s) => s.base),
+        [CLAUDE]
+      );
+    });
   });
 });

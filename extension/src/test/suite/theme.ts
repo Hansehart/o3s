@@ -1,7 +1,6 @@
 /**
- * The `--vscode-*` variables media/main.css reads, at their Dark Modern values.
- * A webview inherits these from the active theme; a page opened straight in a
- * browser does not, and every themed rule silently collapses without them.
+ * The `--vscode-*` variables media/main.css reads, at their Dark Modern values. A webview
+ * inherits these from the active theme; a rendered page is given them here instead.
  */
 const DARK_THEME_VARIABLES: Readonly<Record<string, string>> = {
   "--vscode-font-family": "system-ui, sans-serif",

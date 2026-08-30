@@ -2,14 +2,14 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { parse as parseJsonc } from "jsonc-parser";
+import { stripVersion } from "./registry";
+import type { Catalog, CatalogEntry, OptionValue } from "./catalog";
 
-export interface CatalogEntry {
-  label: string;
-  description: string;
-  options: unknown;
+/** A feature the user has switched on, with the option values chosen for it. */
+export interface Selected {
+  base: string;
+  values: Record<string, OptionValue>;
 }
-
-export type Catalog = Record<string, CatalogEntry>;
 
 /** The generated file, and the templates it is built from - the layout, stated once. */
 export const devcontainerPath = (root: string): string =>
@@ -24,35 +24,55 @@ export function projectRoot(): string | undefined {
     .find((folderPath) => fs.existsSync(path.join(folderPath, ".o3s")));
 }
 
-/**
- * The templates ship with the checkout, so one that will not parse is a broken
- * install rather than a case to recover from: the shape is asserted here and a
- * bad file surfaces as a throw the provider reports.
- */
+/** Reads a JSONC file as `T`, throwing on a malformed one for the caller to report. */
 export function readJsonc<T>(filePath: string): T {
   return parseJsonc(fs.readFileSync(filePath, "utf8")) as T;
 }
 
-export function loadCatalog(root: string): Catalog {
-  return readJsonc<Catalog>(templatePath(root, "features.json"));
+/** Matches a written ref to its entry across a moved major and a rename, keeping the selection. */
+function entryForRef(catalog: Catalog, ref: string): CatalogEntry | undefined {
+  const base = stripVersion(ref);
+  return (
+    catalog.find((entry) => entry.base === base) ??
+    catalog.find((entry) => entry.legacyIds.some((id) => `${entry.collection}/${id}` === base))
+  );
 }
 
-export function loadCurrentSelection(root: string, catalog: Catalog): string[] {
+/** Keeps the values that differ from the feature's published defaults, which follow the feature. */
+function worthWriting(entry: CatalogEntry, values: Record<string, OptionValue>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([name, value]) => name in entry.options && value !== entry.defaults[name]
+    )
+  );
+}
+
+export function loadCurrentSelection(root: string, catalog: Catalog): Selected[] {
   const current = devcontainerPath(root);
   if (!fs.existsSync(current)) {
     return [];
   }
-  // Unlike the templates, the generated file is the user's to edit, so it may
-  // well be empty or half-written by the time this reads it.
+  // The generated file is the user's to edit, so it is read as whatever it currently holds.
   const parsed = readJsonc<{ features?: Record<string, unknown> } | undefined>(current);
-  return Object.keys(parsed?.features ?? {}).filter((id) => id in catalog);
+
+  // Each written feature, carried over when the catalog still recognises its ref.
+  return Object.entries(parsed?.features ?? {}).flatMap(([ref, values]) => {
+    const entry = entryForRef(catalog, ref);
+    return entry
+      ? [{ base: entry.base, values: (values ?? {}) as Record<string, OptionValue> }]
+      : [];
+  });
 }
 
-export function generateDevcontainer(root: string, catalog: Catalog, selected: string[]) {
+export function generateDevcontainer(root: string, catalog: Catalog, selected: Selected[]) {
   const skeleton = readJsonc<Record<string, unknown>>(templatePath(root, "devcontainer.json"));
 
+  // Each selection, written at the entry's pinned ref.
   skeleton.features = Object.fromEntries(
-    selected.filter((id) => id in catalog).map((id) => [id, catalog[id].options])
+    selected.flatMap((selection) => {
+      const entry = catalog.find((candidate) => candidate.base === selection.base);
+      return entry ? [[entry.ref, worthWriting(entry, selection.values)]] : [];
+    })
   );
 
   fs.writeFileSync(devcontainerPath(root), JSON.stringify(skeleton, null, 4) + "\n", "utf8");

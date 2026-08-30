@@ -9,14 +9,18 @@ export function activate(context: vscode.ExtensionContext) {
   const log = createLog(context);
 
   log.info(`host: remoteName=${vscode.env.remoteName ?? "none"}`);
+  // Each folder open in the window, which is where the marker search looks.
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
     log.info(`folder: uri=${folder.uri.toString()} fsPath=${folder.uri.fsPath}`);
   }
+
+  const provider = new MainViewProvider(context, log);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("o3s.generateDevcontainer", () => {
       vscode.commands.executeCommand("workbench.view.extension.o3s");
     }),
+    vscode.commands.registerCommand("o3s.refreshCatalog", () => provider.refresh()),
     vscode.commands.registerCommand("o3s.cloneAndSetup", async () => {
       log.info("executing git.clone");
       try {
@@ -26,10 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage(`o3s: could not clone o3s - ${error}`);
       }
     }),
-    vscode.window.registerWebviewViewProvider(
-      "o3s.mainView",
-      new MainViewProvider(context.extensionUri, log)
-    )
+    vscode.window.registerWebviewViewProvider("o3s.mainView", provider)
   );
 }
 

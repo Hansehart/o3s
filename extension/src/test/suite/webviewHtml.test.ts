@@ -4,7 +4,7 @@ import * as os from "os";
 import * as path from "path";
 import { execFileSync } from "child_process";
 import { WebviewAssets, featuresHtml, openProjectHtml } from "../../webviewHtml";
-import { CATALOG, CLAUDE, GITHUB } from "./fixtures";
+import { CATALOG, CLAUDE, DIND, GITHUB, OURS, THEIRS, entryFor } from "./fixtures";
 import { themeCss } from "./theme";
 
 const CHROME = "chrome-headless-shell";
@@ -17,6 +17,14 @@ const ASSETS: WebviewAssets = {
   logoUri: `file://${path.join(MEDIA, "icon.png")}`,
 };
 
+/** The page as the provider builds it, with only the selection varying per test. */
+const page = (selected: Record<string, Record<string, string | boolean>> = {}) =>
+  featuresHtml(ASSETS, {
+    catalog: CATALOG,
+    collections: [OURS, THEIRS],
+    selected: new Map(Object.entries(selected)),
+  });
+
 /** The `vscode` object a webview gets from the host, recording what the page sends. */
 const VSCODE_API_STUB = `
   let posted = [];
@@ -27,6 +35,7 @@ const VSCODE_API_STUB = `
     el.textContent = typeof value === "string" ? value : JSON.stringify(value);
     document.body.appendChild(el);
   };
+  const card = (base) => document.querySelector('[data-base="' + base + '"]');
 `;
 
 /**
@@ -46,7 +55,7 @@ function render(html: string, driver: string): string {
     const theme = path.join(dir, "theme.css");
     fs.writeFileSync(theme, themeCss(), "utf8");
 
-    const page = html
+    const rendered = html
       .replace(
         "</head>",
         `<link href="file://${theme}" rel="stylesheet">
@@ -55,7 +64,7 @@ function render(html: string, driver: string): string {
       .replace("</body>", `<script nonce="${nonce}">${driver}</script></body>`);
 
     const file = path.join(dir, "page.html");
-    fs.writeFileSync(file, page, "utf8");
+    fs.writeFileSync(file, rendered, "utf8");
     return execFileSync(
       CHROME,
       ["--no-sandbox", "--disable-gpu", "--dump-dom", `file://${file}`],
@@ -74,51 +83,230 @@ const probe = (dom: string, name: string): string | undefined =>
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&");
 
-suite("webviewHtml (rendered)", () => {
-  test("features page renders one card per catalog entry", () => {
-    const html = featuresHtml(ASSETS, CATALOG, new Set());
-    const dom = render(html, `report("cards", document.querySelectorAll(".feature-card").length);`);
-    assert.strictEqual(probe(dom, "cards"), "2");
+const json = (dom: string, name: string): unknown => JSON.parse(probe(dom, name) ?? "null");
+
+suite("webviewHtml: the catalog", () => {
+  test("renders one card per catalog entry", () => {
+    const dom = render(page(), `report("cards", document.querySelectorAll(".feature-card").length);`);
+    assert.strictEqual(probe(dom, "cards"), String(CATALOG.length));
   });
 
-  test("the selected set arrives as checked toggles", () => {
-    const html = featuresHtml(ASSETS, CATALOG, new Set([GITHUB]));
+  test("what is already selected starts in the selected list, the rest in browse", () => {
     const dom = render(
-      html,
-      `report("checked", [...document.querySelectorAll("input:checked")].map(i => i.value));`
+      page({ [CLAUDE]: {} }),
+      `report("selected", [...document.querySelectorAll("#selected [data-base]")].map(e => e.dataset.base));
+       report("browse", [...document.querySelectorAll("#browse [data-base]")].map(e => e.dataset.base));`
     );
-    assert.strictEqual(probe(dom, "checked"), JSON.stringify([GITHUB]));
+    assert.deepStrictEqual(json(dom, "selected"), [CLAUDE]);
+    assert.deepStrictEqual(json(dom, "browse"), [GITHUB, DIND]);
   });
 
-  test("the counter tracks toggles as they are clicked", () => {
-    const html = featuresHtml(ASSETS, CATALOG, new Set());
+  test("the docs link points at what the feature published", () => {
     const dom = render(
-      html,
-      `report("before", document.getElementById("count").textContent);
-       document.querySelector("input[type=checkbox]").click();
-       report("after", document.getElementById("count").textContent);`
+      page(),
+      `report("href", card("${CLAUDE}").querySelector("a.docs").getAttribute("href"));`
     );
-    assert.strictEqual(probe(dom, "before"), "0 of 2 selected");
-    assert.strictEqual(probe(dom, "after"), "1 of 2 selected");
+    assert.strictEqual(probe(dom, "href"), entryFor(CLAUDE).documentationURL);
   });
 
-  test("Generate posts the checked ids to the extension", () => {
-    const html = featuresHtml(ASSETS, CATALOG, new Set([CLAUDE]));
+  test("a feature that weakens isolation says so before it is enabled", () => {
     const dom = render(
-      html,
+      page(),
+      `report("notes", [...card("${DIND}").querySelectorAll(".security li")].map(e => e.textContent));
+       report("quiet", card("${GITHUB}").querySelectorAll(".security").length);`
+    );
+    assert.deepStrictEqual(json(dom, "notes"), ["runs privileged", "adds SYS_PTRACE"]);
+    assert.strictEqual(probe(dom, "quiet"), "0");
+  });
+});
+
+suite("webviewHtml: option controls", () => {
+  const control = (base: string, option: string) =>
+    `card("${base}").querySelector('[data-option="${option}"]')`;
+
+  test("a boolean option is a checkbox at the published default", () => {
+    const dom = render(
+      page(),
+      `const el = ${control(DIND, "moby")};
+       report("type", el.type);
+       report("checked", el.checked);`
+    );
+    assert.strictEqual(probe(dom, "type"), "checkbox");
+    assert.strictEqual(probe(dom, "checked"), "true");
+  });
+
+  test("a closed enum is a select carrying exactly its choices", () => {
+    const dom = render(
+      page(),
+      `const el = ${control(GITHUB, "version")};
+       report("tag", el.tagName);
+       report("choices", [...el.options].map(o => o.value));
+       report("value", el.value);`
+    );
+    assert.strictEqual(probe(dom, "tag"), "SELECT");
+    assert.deepStrictEqual(json(dom, "choices"), ["latest", "2.0"]);
+    assert.strictEqual(probe(dom, "value"), "latest");
+  });
+
+  test("proposals are suggestions, so the field stays typeable", () => {
+    const dom = render(
+      page(),
+      `const el = ${control(CLAUDE, "version")};
+       report("tag", el.tagName);
+       report("list", [...document.getElementById(el.getAttribute("list")).options].map(o => o.value));`
+    );
+    assert.strictEqual(probe(dom, "tag"), "INPUT");
+    assert.deepStrictEqual(json(dom, "list"), ["latest", "stable"]);
+  });
+
+  test("a plain string is a text field", () => {
+    const dom = render(page(), `report("type", ${control(DIND, "version")}.type);`);
+    assert.strictEqual(probe(dom, "type"), "text");
+  });
+
+  test("an o3s override seeds the control instead of the feature's default", () => {
+    const dom = render(
+      page(),
+      `report("stateDir", ${control(CLAUDE, "stateDir")}.value);
+       report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
+    );
+    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
+    assert.strictEqual(probe(dom, "traffic"), "true");
+  });
+
+  test("a value already in devcontainer.json wins over the seed", () => {
+    const dom = render(
+      page({ [CLAUDE]: { stateDir: "/elsewhere" } }),
+      `report("stateDir", ${control(CLAUDE, "stateDir")}.value);`
+    );
+    assert.strictEqual(probe(dom, "stateDir"), "/elsewhere");
+  });
+
+  test("each control carries the option's own description", () => {
+    const dom = render(
+      page(),
+      `report("desc", card("${CLAUDE}").querySelector('[data-describes="stateDir"]').textContent);`
+    );
+    assert.strictEqual(probe(dom, "desc"), "Where state is kept.");
+  });
+
+  test("reset puts the o3s values back after an edit", () => {
+    const dom = render(
+      page(),
+      `${control(CLAUDE, "stateDir")}.value = "/scratch";
+       ${control(CLAUDE, "disableNonessentialTraffic")}.checked = false;
+       card("${CLAUDE}").querySelector(".reset").click();
+       report("stateDir", ${control(CLAUDE, "stateDir")}.value);
+       report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
+    );
+    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
+    assert.strictEqual(probe(dom, "traffic"), "true");
+  });
+});
+
+suite("webviewHtml: switching provider", () => {
+  test("browse shows one provider at a time", () => {
+    const visible = `[...document.querySelectorAll("#browse .feature-card")]
+       .filter(e => e.offsetParent !== null).map(e => e.dataset.base)`;
+    const dom = render(
+      page(),
+      `report("first", ${visible});
+       document.querySelector('[data-provider="${THEIRS}"]').click();
+       report("second", ${visible});`
+    );
+    assert.deepStrictEqual(json(dom, "first"), [CLAUDE]);
+    assert.deepStrictEqual(json(dom, "second"), [GITHUB, DIND]);
+  });
+
+  test("a selected feature stays visible whichever provider is being browsed", () => {
+    const dom = render(
+      page({ [CLAUDE]: {} }),
+      `document.querySelector('[data-provider="${THEIRS}"]').click();
+       report("selected", [...document.querySelectorAll("#selected .feature-card")]
+         .filter(e => e.offsetParent !== null).map(e => e.dataset.base));`
+    );
+    assert.deepStrictEqual(json(dom, "selected"), [CLAUDE]);
+  });
+
+  test("adding a provider asks the extension to fetch it", () => {
+    const dom = render(
+      page(),
+      `document.getElementById("provider-ref").value = "ghcr.io/acme/features";
+       document.getElementById("add-provider").click();
+       report("posted", posted);`
+    );
+    assert.deepStrictEqual(json(dom, "posted"), [
+      { type: "addProvider", ref: "ghcr.io/acme/features" },
+    ]);
+  });
+
+  test("an empty provider field posts nothing", () => {
+    const dom = render(
+      page(),
+      `document.getElementById("add-provider").click();
+       report("posted", posted);`
+    );
+    assert.deepStrictEqual(json(dom, "posted"), []);
+  });
+});
+
+suite("webviewHtml: generating", () => {
+  test("enabling a feature moves it into the selected list", () => {
+    const dom = render(
+      page(),
+      `card("${GITHUB}").querySelector('input[type="checkbox"].toggle').click();
+       report("selected", [...document.querySelectorAll("#selected [data-base]")].map(e => e.dataset.base));`
+    );
+    assert.deepStrictEqual(json(dom, "selected"), [GITHUB]);
+  });
+
+  test("Generate posts each selected base with the values on its controls", () => {
+    const dom = render(
+      page({ [CLAUDE]: {} }),
+      `card("${CLAUDE}").querySelector('[data-option="stateDir"]').value = "/custom";
+       document.getElementById("generate").click();
+       report("posted", posted);`
+    );
+    assert.deepStrictEqual(json(dom, "posted"), [
+      {
+        type: "generate",
+        selected: [
+          {
+            base: CLAUDE,
+            values: {
+              version: "latest",
+              stateDir: "/custom",
+              disableNonessentialTraffic: true,
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("Generate ignores the features left switched off", () => {
+    const dom = render(
+      page(),
       `document.getElementById("generate").click();
        report("posted", posted);`
     );
-    assert.strictEqual(
-      probe(dom, "posted"),
-      JSON.stringify([{ type: "generate", selected: [CLAUDE] }])
+    assert.deepStrictEqual(json(dom, "posted"), [{ type: "generate", selected: [] }]);
+  });
+
+  test("the counter tracks toggles as they are clicked", () => {
+    const dom = render(
+      page(),
+      `report("before", document.getElementById("count").textContent);
+       card("${GITHUB}").querySelector('input[type="checkbox"].toggle').click();
+       report("after", document.getElementById("count").textContent);`
     );
+    assert.strictEqual(probe(dom, "before"), `0 of ${CATALOG.length} selected`);
+    assert.strictEqual(probe(dom, "after"), `1 of ${CATALOG.length} selected`);
   });
 
   test("the toggles are actually visible once themed", () => {
-    const html = featuresHtml(ASSETS, CATALOG, new Set());
     const dom = render(
-      html,
+      page(),
       `const slider = document.querySelector(".slider");
        const box = slider.getBoundingClientRect();
        report("size", [Math.round(box.width), Math.round(box.height)]);
@@ -128,14 +316,15 @@ suite("webviewHtml (rendered)", () => {
     assert.ok(width > 0 && height > 0, `slider has no box: ${width}x${height}`);
     assert.notStrictEqual(probe(dom, "background"), "rgba(0, 0, 0, 0)");
   });
+});
 
-  test("clone page wires its button to a clone message", () => {
+suite("webviewHtml: the clone page", () => {
+  test("wires its button to a clone message", () => {
     const dom = render(
       openProjectHtml(ASSETS),
       `document.getElementById("clone").click();
        report("posted", posted);`
     );
-    assert.strictEqual(probe(dom, "posted"), JSON.stringify([{ type: "clone" }]));
+    assert.deepStrictEqual(json(dom, "posted"), [{ type: "clone" }]);
   });
-
 });
