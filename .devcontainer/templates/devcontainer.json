@@ -7,7 +7,7 @@
 //        are injected through the proxy.
 //
 // SEE ALSO
-//        compose.yaml, config.toml, https://containers.dev
+//        compose.yaml, config.toml
 {
     // Name for the dev container
     "name": "o3s",
