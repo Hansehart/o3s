@@ -24,10 +24,13 @@ function page(
 ): string {
   const nonce = randomUUID();
   return /* html */ `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; ${extraCsp}style-src ${assets.cspSource}; script-src 'nonce-${nonce}';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="${assets.styleUri}" rel="stylesheet">
+  <title>o3s</title>
 </head>
 <body class="${bodyClass}">
 ${body}
