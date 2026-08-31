@@ -28,6 +28,14 @@ install -d -m 700 "$SECRETS_DIR"
 # Generate this host's egress-proxy CA
 bash .devcontainer/proxy/gen-ca.sh
 
+# Load the cage's confinement profile where this host's kernel enforces AppArmor
+PROFILE=.devcontainer/apparmor.conf
+if [ -f "$PROFILE" ] && aa-enabled --quiet 2>/dev/null; then
+  log "locking down the cage's processes from the host kernel, which requires root"
+  sudo apparmor_parser -r -T -W "$PROFILE" 2>/dev/null \
+    || log "load this host's confinement profile: sudo apparmor_parser -r $PROFILE"
+fi
+
 # Seed the real-token file from its template
 [ -f "$SECRETS_DIR/secrets.env" ] \
   || install -m 600 .devcontainer/templates/secrets.env "$SECRETS_DIR/secrets.env"

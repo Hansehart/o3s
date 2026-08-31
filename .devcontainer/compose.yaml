@@ -65,7 +65,7 @@ services:
       - /dev/net/tun
     # The namespaces and mounts the daemon creates, over a procfs left open enough to mount
     security_opt:
-      - apparmor=unconfined
+      - apparmor=o3s-cage
       - seccomp=./seccomp.json
       - systempaths=unconfined
     # Bring the cage up behind the gateway
