@@ -5,4 +5,7 @@ export default defineConfig({
   // VS Code opens an IPC socket under the user data dir, and a unix socket path
   // caps at 107 characters, which a checkout nested a few levels deep exceeds.
   launchArgs: ["--user-data-dir", "/tmp/o3s-vscode-test"],
+  // The webview suite drives a headless browser per test, and its first cold launch
+  // takes longer than mocha allows by default.
+  mocha: { timeout: 20000 },
 });
