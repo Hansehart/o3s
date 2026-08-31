@@ -30,6 +30,9 @@ services:
     pull_policy: build
     environment:
       GATEWAY_IP: *gateway_ip
+    volumes:
+      # For developing cage, this directory becomes writable
+      - ../:/home/ubuntu/o3s
     # Replace the inherited list, so resolv.conf holds this stack's gateway alone
     dns: !override
       - *gateway_ip
