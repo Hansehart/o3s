@@ -18,10 +18,18 @@ export const devcontainerPath = (root: string): string =>
 export const templatePath = (root: string, name: string): string =>
   path.join(root, ".devcontainer", "templates", name);
 
+/**
+ * A checkout is one the sidebar can work in exactly when the sources file it reads is
+ * there. Testing for that file rather than a marker beside it keeps one answer to the
+ * question, so a checkout cannot both claim to be o3s and have nothing to offer.
+ */
+export const isProjectRoot = (folderPath: string): boolean =>
+  fs.existsSync(templatePath(folderPath, "features.json"));
+
 export function projectRoot(): string | undefined {
   return vscode.workspace.workspaceFolders
     ?.map((folder) => folder.uri.fsPath)
-    .find((folderPath) => fs.existsSync(path.join(folderPath, ".o3s")));
+    .find(isProjectRoot);
 }
 
 /** Reads a JSONC file as `T`, throwing on a malformed one for the caller to report. */

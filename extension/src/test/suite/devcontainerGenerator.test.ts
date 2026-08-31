@@ -5,6 +5,7 @@ import * as path from "path";
 import {
   devcontainerPath,
   generateDevcontainer,
+  isProjectRoot,
   loadCurrentSelection,
   templatePath,
 } from "../../devcontainerGenerator";
@@ -89,6 +90,35 @@ suite("devcontainerGenerator", () => {
     const contents = fs.readFileSync(devcontainerPath(root), "utf8");
     assert.ok(!contents.includes("//"), "comments do not survive a round trip");
     assert.deepStrictEqual(Object.keys(readDevcontainer().features ?? {}), [`${CLAUDE}:1`]);
+  });
+
+  suite("isProjectRoot", () => {
+    const folder = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "o3s-root-"));
+
+    test("a checkout carrying the sources file is one", () => {
+      const candidate = folder();
+      fs.mkdirSync(path.dirname(templatePath(candidate, "features.json")), { recursive: true });
+      fs.writeFileSync(templatePath(candidate, "features.json"), "{}", "utf8");
+      assert.strictEqual(isProjectRoot(candidate), true);
+      fs.rmSync(candidate, { recursive: true, force: true });
+    });
+
+    test("an unrelated folder is not", () => {
+      const candidate = folder();
+      assert.strictEqual(isProjectRoot(candidate), false);
+      fs.rmSync(candidate, { recursive: true, force: true });
+    });
+
+    test("the file the extension reads decides it, not a marker beside it", () => {
+      const candidate = folder();
+      fs.writeFileSync(path.join(candidate, ".o3s"), "", "utf8");
+      assert.strictEqual(
+        isProjectRoot(candidate),
+        false,
+        "a marker without the sources file would offer a catalog that cannot be read"
+      );
+      fs.rmSync(candidate, { recursive: true, force: true });
+    });
   });
 
   suite("loadCurrentSelection", () => {

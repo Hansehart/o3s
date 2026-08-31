@@ -195,7 +195,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     });
 
     if (!this.root) {
-      this.log.info("no .o3s marker in any workspace folder, showing the clone page");
+      this.log.info("no o3s checkout in any workspace folder, showing the clone page");
       webviewView.webview.html = openProjectHtml(this.assets(webviewView.webview));
       return;
     }

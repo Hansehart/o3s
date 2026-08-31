@@ -12,7 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:.o3s"
+    "workspaceContains:.devcontainer/templates/features.json"
   ],
   "main": "./out/extension.js",
   "extensionKind": [
