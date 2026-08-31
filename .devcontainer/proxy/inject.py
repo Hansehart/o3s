@@ -15,9 +15,16 @@ secret in a body, as OAuth token exchange does, declares those sites itself. A r
 excluded by default because it carries client content: an agent whose conversation quotes the
 placeholder would otherwise have its real secret spliced into the prompt.
 
+A header carries its credential in the clear or inside a Basic scheme, which is base64 and so
+invisible to a literal match. Both forms are swapped, the encoded one by decoding the credential,
+replacing inside the plaintext, and re-encoding it as the destination expects.
+
 Responses take the reverse trip. A secret appearing in one is masked before it reaches the client,
-so a destination that quotes request content back hands the client filler. Masking matches the
-secret byte for byte, and a destination that re-encodes it first (base64, escaping) echoes it on.
+so a destination that quotes request content back hands the client filler. Masking reads the same
+two forms as injection writes: the secret itself, and the secret inside any base64 that holds it,
+because base64 is a spelling rather than a lock and a client handed one decodes it in a single step.
+A destination that transforms the secret some other way first (URL-encoding, JSON escaping, hex)
+echoes it on, an arbitrary transformation having no general answer.
 
 Inputs:
   config    which destination injects which named secret, and into which sites
@@ -25,6 +32,7 @@ Inputs:
   marker    the placeholder the client sends in place of a secret
 """
 
+import base64
 import logging
 import os
 import re
@@ -41,6 +49,9 @@ SECRETS_FILE = os.environ.get("O3S_SECRETS_FILE", "/config/secrets.env")
 # Where in a request a host may carry its credential, and what it carries there unless it says so.
 SITES = frozenset({"header", "query", "body"})
 DEFAULT_SITES = frozenset({"header"})
+
+# Shortest encoded form worth matching, below which a secret is too small to identify on its own.
+MIN_CORE = 12
 
 
 def _parse_secrets(text):
@@ -84,6 +95,13 @@ def _parse_sites(host, value):
     return named & SITES
 
 
+def _mask(data, forms, filler):
+    """Replace every form in data with same-length filler, keeping the length already committed."""
+    for form in forms:
+        data = data.replace(form, filler * len(form))
+    return data
+
+
 def _prefix_overlap(buf: bytes, tok: bytes) -> int:
     """Length of the tail of buf that could be the opening bytes of tok."""
     # Take the longest tail first, so the answer is the most that could still be held back.
@@ -91,6 +109,64 @@ def _prefix_overlap(buf: bytes, tok: bytes) -> int:
         if buf.endswith(tok[:k]):
             return k
     return 0
+
+
+def _secret_forms(token: str):
+    """The token as a response can carry it: itself, and inside any base64 that holds it.
+
+    Base64 packs three bytes into four characters (RFC 4648, Section 4), so a token inside a larger
+    payload lands on one of three alignments. For each, the middle of the encoding is fixed by the
+    token alone, while the first and last groups mix with whatever surrounds it and are dropped.
+    Matching those three cores finds the token under any username, padding or enclosing content.
+    """
+    forms = [token]
+    for pad in range(3):
+        enc = base64.b64encode(b"\0" * pad + token.encode()).decode()
+        # Drop the group the prefix shares, and the trailing group the suffix would share.
+        core = enc[4 if pad else 0 : -4]
+        # A short core would match by chance, and masking the innocent is its own failure.
+        if len(core) >= MIN_CORE:
+            forms.append(core)
+    return forms
+
+
+def _swap_basic(value: str, marker: str, token: str, host: str):
+    """Swap the marker inside a Basic credential, whose payload is base64 rather than plain text.
+
+    A literal match cannot see a marker the client encoded before sending it, so the credential is
+    decoded, swapped inside the plaintext, and re-encoded. Returning None for anything that is not
+    a Basic credential holding the marker leaves every other header to the plaintext pass.
+
+    The framework spells a credential "<scheme> 1*SP <payload>" with a case-insensitive scheme and
+    padding optional on the payload (RFC 9110, Sections 11.1 and 11.4), so all three are accepted.
+    The payload is a user-id, a colon and a password (RFC 7617, Section 2); replacing across the
+    whole of it covers a marker on either side without having to decide which side it sits on.
+    """
+    parts = value.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != "basic":
+        return None
+    scheme, blob = parts
+    # Restore the padding the sender was free to omit, which strict decoding then requires.
+    padded = blob + "=" * (-len(blob) % 4)
+    # Strict decoding, so an ordinary header that happens to look like base64 falls through.
+    try:
+        raw = base64.b64decode(padded, validate=True).decode()
+    except ValueError:
+        # The one form we cannot read: say so, or the marker leaves and the 401 explains nothing.
+        logging.warning(f"o3s: {host} sent a Basic credential this addon cannot decode")
+        return None
+    # Decoding alone claims nothing, so only a marker inside marks this as ours to rewrite.
+    if marker not in raw:
+        return None
+    return scheme + " " + base64.b64encode(raw.replace(marker, token).encode()).decode()
+
+
+def _swap_header(value: str, marker: str, token: str, host: str) -> str:
+    """The value with its marker swapped, in the clear or inside a Basic credential, else as-is."""
+    if marker in value:
+        return value.replace(marker, token)
+    encoded = _swap_basic(value, marker, token, host)
+    return value if encoded is None else encoded
 
 
 class InjectCredentials:
@@ -101,6 +177,8 @@ class InjectCredentials:
         self._sig = None
         # Maps each intercepted host to its resolved secret, or None until the secret is filled in.
         self._hosts = {}
+        # Maps each intercepted host to every form its secret can be recognised by in a response.
+        self._forms = {}
         # Maps each intercepted host to the request sites it carries its credential in.
         self._sites = {}
         # Every key the allowlist declares, and the subset of them permitted on HTTPS.
@@ -141,6 +219,8 @@ class InjectCredentials:
                 hosts[key] = secrets.get(name)  # None until the secret is filled in
                 sites[key] = _parse_sites(host, spec.get("inject"))
         self._hosts = hosts
+        # Derive the forms once per load, so a response is matched without deriving them per flow.
+        self._forms = {k: _secret_forms(t) if t else [] for k, t in hosts.items()}
         self._sites = sites
         self._keys = frozenset(keys)
         self._allowed = frozenset(allowed)
@@ -165,45 +245,43 @@ class InjectCredentials:
         """Accept a name whose allowlist entry declares HTTPS."""
         return self._resolve(sni) in self._allowed
 
-    def _masker(self, tok: bytes, host: str):
-        """Mask the secret with same-length filler as a body streams past.
+    def _masker(self, toks, host: str):
+        """Mask every form of the secret with same-length filler as a body streams past.
 
         The response headers, content-length included, go out before the first chunk arrives, so
         the replacement holds the original length. A secret split across two chunks is caught by
-        holding back the tail that could be its opening bytes, which for a high-entropy secret is
-        empty on all but a vanishing fraction of chunks.
+        holding back the tail that could be the opening bytes of any form, which for a high-entropy
+        secret is empty on all but a vanishing fraction of chunks.
         """
-        mask = b"*" * len(tok)
         carry = b""
         logged = False
 
         def mask_chunk(data: bytes):
             nonlocal carry, logged
-            buf = carry + data
-            if tok in buf:
-                buf = buf.replace(tok, mask)
-                if not logged:
-                    logged = True
-                    logging.warning(f"o3s: masked {host} secret echoed in a response body")
+            raw = carry + data
+            buf = _mask(raw, toks, b"*")
+            if buf != raw and not logged:
+                logged = True
+                logging.warning(f"o3s: masked {host} secret echoed in a response body")
+            # Hold back for the form that could keep the most, so none is cut across the boundary.
+            held = max((_prefix_overlap(buf, t) for t in toks), default=0)
             # The final call arrives with b"" and releases whatever is still held back.
-            cut = len(buf) - _prefix_overlap(buf, tok) if data else len(buf)
+            cut = len(buf) - held if data else len(buf)
             carry = buf[cut:]
             # Hand back an empty list to hold a chunk back, keeping the body open.
             return buf[:cut] or []
 
         return mask_chunk
 
-    def _mask_headers(self, resp: http.Response, token: str, host: str) -> None:
-        """Mask the secret in response headers, which carry no length commitment."""
-        names = {k for k, v in resp.headers.items(multi=True) if token in v}
+    def _mask_headers(self, resp: http.Response, forms, host: str) -> None:
+        """Mask every form of the secret in response headers, which carry no length commitment."""
+        names = {k for k, v in resp.headers.items(multi=True) if any(f in v for f in forms)}
         if not names:
             return
-        mask = "*" * len(token)
         # Rewrite per unique name, preserving duplicate headers.
         for name in names:
-            resp.headers.set_all(
-                name, [v.replace(token, mask) for v in resp.headers.get_all(name)]
-            )
+            values = [_mask(v, forms, "*") for v in resp.headers.get_all(name)]
+            resp.headers.set_all(name, values)
         logging.warning(f"o3s: masked {host} secret echoed in a response header")
 
     def tls_clienthello(self, data: tls.ClientHelloData) -> None:
@@ -240,26 +318,31 @@ class InjectCredentials:
         if key not in self._hosts:
             return
         resp = flow.response
-        token = self._hosts[key]
-        if not token:
+        forms = self._forms[key]
+        if not forms:
             resp.stream = True
             return
-        self._mask_headers(resp, token, host)
+        self._mask_headers(resp, forms, host)
+        # A body is matched as bytes, so encode the forms the once rather than per chunk.
+        raw = [f.encode() for f in forms]
         if resp.headers.get("content-encoding", "identity").lower() in ("", "identity"):
-            resp.stream = self._masker(token.encode(), host)
+            resp.stream = self._masker(raw, host)
         else:
             # A compressed body reads as noise chunk by chunk, so buffer it and mask it whole.
             resp.stream = False
-            flow.metadata["o3s_mask"] = token
+            flow.metadata["o3s_mask"] = raw
 
     def response(self, flow: http.HTTPFlow) -> None:
         """Mask the secret in a buffered body, which responseheaders deferred to here."""
-        token = flow.metadata.pop("o3s_mask", None)
-        if not token:
+        forms = flow.metadata.pop("o3s_mask", None)
+        if not forms:
             return
         body = flow.response.get_content(strict=False)
-        if body and token.encode() in body:
-            flow.response.set_content(body.replace(token.encode(), b"*" * len(token)))
+        if not body:
+            return
+        masked = _mask(body, forms, b"*")
+        if masked != body:
+            flow.response.set_content(masked)
             logging.warning(
                 f"o3s: masked {flow.client_conn.sni} secret echoed in a response body"
             )
@@ -275,23 +358,29 @@ class InjectCredentials:
         if not m:
             return
         req = flow.request
+        # A secret waiting for its token substitutes empty, leaving the destination to answer.
+        token = self._hosts.get(key) or ""
         # Locate the placeholder in the sites this host declares, leaving the rest unread.
         sites = self._sites.get(key, DEFAULT_SITES)
-        hdr_names = (
-            {k for k, v in req.headers.items(multi=True) if m in v} if "header" in sites else ()
-        )
+        # Headers: one pass over every value, so an encoded one is read and decoded the once.
+        headers = {}
+        spelling = {}
+        swapped = set()
+        if "header" in sites:
+            for name, value in req.headers.items(multi=True):
+                key_name = name.lower()  # group case variants, which are the one header, together
+                # Write back the spelling the client chose, this addon having no business in it.
+                spelling.setdefault(key_name, name)
+                new = _swap_header(value, m, token, host)
+                if new != value:
+                    swapped.add(key_name)
+                headers.setdefault(key_name, []).append(new)
         in_path = "query" in sites and m in req.path
         body = req.get_content(strict=False) if "body" in sites else None
         in_body = bool(body) and m.encode() in body
-        if not (hdr_names or in_path or in_body):
-            return
-        # A secret waiting for its token substitutes empty, leaving the destination to answer.
-        token = self._hosts.get(key) or ""
-        # Headers: replace per unique name to preserve duplicate headers.
-        for name in hdr_names:
-            req.headers.set_all(
-                name, [v.replace(m, token) for v in req.headers.get_all(name)]
-            )
+        # Headers: write back per unique name to preserve duplicate headers.
+        for name in swapped:
+            req.headers.set_all(spelling[name], headers[name])
         # Query: percent-encode the token so it stays valid in the URL.
         if in_path:
             req.path = req.path.replace(m, quote(token, safe=""))
