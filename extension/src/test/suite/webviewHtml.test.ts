@@ -7,7 +7,22 @@ import { WebviewAssets, featuresHtml, openProjectHtml } from "../../webviewHtml"
 import { CATALOG, CLAUDE, DIND, GITHUB, OURS, THEIRS, entryFor } from "./fixtures";
 import { themeCss } from "./theme";
 
-const CHROME = "chrome-headless-shell";
+/** The headless browsers that answer `--dump-dom`, in the order the harness looks for them. */
+const CHROME_CANDIDATES = ["chrome-headless-shell", "google-chrome", "chromium", "chromium-browser"];
+
+function chromeBinary(): string {
+  const dirs = (process.env.PATH ?? "").split(path.delimiter);
+  for (const candidate of CHROME_CANDIDATES) {
+    const found = dirs
+      .map((dir) => path.join(dir, candidate))
+      .find((binary) => fs.existsSync(binary));
+    if (found) {
+      return found;
+    }
+  }
+  throw new Error(`no headless browser on PATH; tried ${CHROME_CANDIDATES.join(", ")}`);
+}
+
 const MEDIA = path.resolve(__dirname, "..", "..", "..", "media");
 
 const ASSETS: WebviewAssets = {
@@ -38,32 +53,31 @@ const VSCODE_API_STUB = `
   const card = (base) => document.querySelector('[data-base="' + base + '"]');
 `;
 
-/**
- * Renders a page in headless Chrome, runs `driver` in it, and returns the DOM; the driver
- * reports through `report(name, value)`, read back out of `data-probe`. The stub sits in
- * `<head>` to precede the page's script, and the theme is linked so `style-src` covers it.
- */
+/** Renders a page in headless Chrome, runs `driver` in it, and returns the DOM. */
 function render(html: string, driver: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-webview-"));
   try {
-    // From the CSP rather than a script tag, since a page need not carry a script.
+    // From the CSP, which every page carries whether or not it has a script.
     const nonce = /'nonce-([^']+)'/.exec(html)?.[1] ?? "";
     const theme = path.join(dir, "theme.css");
     fs.writeFileSync(theme, themeCss(), "utf8");
 
+    // The stub sits in `<head>` to precede the page's script; the theme is linked from
+    // there too, so `style-src` covers it.
     const rendered = html
       .replace(
         "</head>",
         `<link href="file://${theme}" rel="stylesheet">
          <script nonce="${nonce}">${VSCODE_API_STUB}</script></head>`
       )
+      // The driver runs last, once the page has wired itself up.
       .replace("</body>", `<script nonce="${nonce}">${driver}</script></body>`);
 
     const file = path.join(dir, "page.html");
     fs.writeFileSync(file, rendered, "utf8");
     return execFileSync(
-      CHROME,
-      ["--no-sandbox", "--disable-gpu", "--dump-dom", `file://${file}`],
+      chromeBinary(),
+      ["--headless", "--no-sandbox", "--disable-gpu", "--dump-dom", `file://${file}`],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     );
   } finally {
@@ -160,14 +174,14 @@ suite("webviewHtml: option controls", () => {
     assert.strictEqual(probe(dom, "type"), "text");
   });
 
-  test("an o3s override seeds the control instead of the feature's default", () => {
+  test("a control starts at the feature's published default", () => {
     const dom = render(
       page(),
       `report("stateDir", ${control(CLAUDE, "stateDir")}.value);
        report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
     );
-    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
-    assert.strictEqual(probe(dom, "traffic"), "true");
+    assert.strictEqual(probe(dom, "stateDir"), "");
+    assert.strictEqual(probe(dom, "traffic"), "false");
   });
 
   test("a value already in devcontainer.json wins over the seed", () => {
@@ -186,17 +200,27 @@ suite("webviewHtml: option controls", () => {
     assert.strictEqual(probe(dom, "desc"), "Where state is kept.");
   });
 
-  test("reset puts the o3s values back after an edit", () => {
+  test("reset puts the published defaults back after an edit", () => {
     const dom = render(
       page(),
       `${control(CLAUDE, "stateDir")}.value = "/scratch";
-       ${control(CLAUDE, "disableNonessentialTraffic")}.checked = false;
+       ${control(CLAUDE, "disableNonessentialTraffic")}.checked = true;
        card("${CLAUDE}").querySelector(".reset").click();
        report("stateDir", ${control(CLAUDE, "stateDir")}.value);
        report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
     );
-    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
-    assert.strictEqual(probe(dom, "traffic"), "true");
+    assert.strictEqual(probe(dom, "stateDir"), "");
+    assert.strictEqual(probe(dom, "traffic"), "false");
+  });
+
+  test("reset on a selected card returns to the default, not to what the file holds", () => {
+    // The seed a control resets to is the feature's own default, whatever the file states.
+    const dom = render(
+      page({ [CLAUDE]: { stateDir: "/elsewhere" } }),
+      `card("${CLAUDE}").querySelector(".reset").click();
+       report("stateDir", ${control(CLAUDE, "stateDir")}.value);`
+    );
+    assert.strictEqual(probe(dom, "stateDir"), "");
   });
 });
 
@@ -272,7 +296,7 @@ suite("webviewHtml: generating", () => {
             values: {
               version: "latest",
               stateDir: "/custom",
-              disableNonessentialTraffic: true,
+              disableNonessentialTraffic: false,
             },
           },
         ],

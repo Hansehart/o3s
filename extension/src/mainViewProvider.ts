@@ -10,9 +10,10 @@ import {
   loadingHtml,
   openProjectHtml,
 } from "./webviewHtml";
-import { Catalog, Sources, addCollection, buildCatalog, loadSources } from "./catalog";
+import { Catalog, buildCatalog } from "./catalog";
 import { PublishedFeature, fetchCollection, parseCollectionRef } from "./registry";
-import { Selected, generateDevcontainer, loadCurrentSelection, projectRoot } from "./devcontainerGenerator";
+import { Selected, loadCurrentSelection, projectRoot, writeSelection } from "./devcontainerFile";
+import { addProvider, allProviders } from "./providers";
 
 type WebviewMessage =
   | { type: "generate"; selected: Selected[] }
@@ -23,7 +24,7 @@ type WebviewMessage =
 export class MainViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private root?: string;
-  /** What the last read of the registry returned, so writing does not repeat it. */
+  /** What the last read of the registry returned, which writing reuses. */
   private fetched = new Map<string, PublishedFeature[]>();
 
   constructor(
@@ -84,15 +85,13 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /**
-   * Reads every collection the sources name, all at once - each is an independent walk of
-   * manifest, token and blob, so the wait is the slowest of them rather than their sum.
-   * Each collection is read on its own, so the sidebar stands on whichever ones resolve.
-   */
-  private async collect(sources: Sources): Promise<Map<string, PublishedFeature[]>> {
+  /** What every provider publishes, keyed by the collection it came from. */
+  private async collect(providers: string[]): Promise<Map<string, PublishedFeature[]>> {
+    // All at once: each is an independent walk, so the wait is the slowest of them.
     const read = await Promise.all(
-      sources.collections.map(async (collection) => [collection, await this.read(collection)] as const)
+      providers.map(async (collection) => [collection, await this.read(collection)] as const)
     );
+    // The sidebar stands on whichever providers resolved.
     this.fetched = new Map(
       read.flatMap(([collection, features]) => (features ? [[collection, features] as const] : []))
     );
@@ -108,21 +107,21 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     const assets = this.assets(view.webview);
 
     try {
-      const sources = loadSources(root);
-      const fetched = await this.collect(sources);
+      const providers = allProviders(root);
+      const fetched = await this.collect(providers);
       if (fetched.size === 0) {
         throw new Error(
-          sources.collections.length
-            ? "No collection could be read, and nothing was cached."
-            : "No collections are configured in .devcontainer/templates/features.json."
+          providers.length
+            ? "No provider could be read, and nothing was cached."
+            : "No feature providers are configured. Set o3s.featureProviders."
         );
       }
 
-      const catalog: Catalog = buildCatalog(sources, fetched, (message) => this.log.warn(message));
+      const catalog: Catalog = buildCatalog(providers, fetched, (message) => this.log.warn(message));
       const selection = loadCurrentSelection(root, catalog);
       view.webview.html = featuresHtml(assets, {
         catalog,
-        collections: sources.collections.filter((c) => fetched.has(c)),
+        collections: providers.filter((provider) => fetched.has(provider)),
         selected: new Map(selection.map((s) => [s.base, s.values])),
       });
     } catch (error) {
@@ -159,14 +158,12 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
     if (message.type === "addProvider") {
       try {
-        // Written first, then read back along with every other collection, so adding a
-        // provider costs one walk of the registry rather than two. A ref that does not
-        // resolve is kept and reported rather than undone, leaving the tracked file the
-        // one place a provider is added or removed.
         const { resource } = parseCollectionRef(message.ref);
-        addCollection(root, resource);
+        // Added first, then read back with the rest, so adding one costs a single walk.
+        await addProvider(resource);
         await this.refresh();
 
+        // A ref that stayed unread keeps its place, and the setting is where to correct it.
         if (!this.fetched.has(resource)) {
           vscode.window.showWarningMessage(
             `o3s: added ${resource}, but it could not be read - see the o3s log.`
@@ -179,14 +176,15 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
 
     try {
-      // Rebuilt at write time from what was last read, so an override edited while the panel
-      // is open applies without walking every registry again. A collection added since that
-      // read has no cards on screen, so there is nothing selected from it to write either.
-      const sources = loadSources(root);
-      const catalog = buildCatalog(sources, this.fetched, (warning) => this.log.warn(warning));
-      generateDevcontainer(root, catalog, message.selected);
+      // Rebuilt from the last read, which is what the cards on screen were drawn from.
+      const catalog = buildCatalog(
+        allProviders(root),
+        this.fetched,
+        (warning) => this.log.warn(warning)
+      );
+      writeSelection(root, catalog, message.selected);
       vscode.window.showInformationMessage(
-        "devcontainer.json generated. Press Ctrl/Cmd+Shift+P and run \"Rebuild and Reopen in Container\" to apply it.",
+        "devcontainer.json updated. Press Ctrl/Cmd+Shift+P and run \"Rebuild and Reopen in Container\" to apply it.",
         { modal: true }
       );
     } catch (error) {
@@ -211,12 +209,12 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     });
 
     if (!this.root) {
-      this.log.info("no o3s checkout in any workspace folder, showing the clone page");
+      this.log.info("no devcontainer.json in any workspace folder, showing the clone page");
       webviewView.webview.html = openProjectHtml(this.assets(webviewView.webview));
       return;
     }
 
-    this.log.info(`o3s checkout: ${this.root}`);
+    this.log.info(`devcontainer checkout: ${this.root}`);
     void this.refresh();
   }
 }

@@ -1,10 +1,16 @@
 {
   "name": "o3s",
   "displayName": "o3s",
-  "description": "VS Code tooling for the o3s dev sandbox.",
+  "description": "A feature store for dev containers, in the sidebar.",
   "version": "0.0.1",
   "publisher": "hansehart",
   "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hansehart/o3s.git",
+    "directory": "extension"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -16,18 +22,37 @@
     "workspace"
   ],
   "contributes": {
+    "configuration": {
+      "title": "o3s",
+      "properties": {
+        "o3s.featureProviders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "ghcr.io/devcontainers/features",
+            "ghcr.io/hansehart/devcontainer-features"
+          ],
+          "markdownDescription": "Feature collections the sidebar browses, each `registry/namespace`. Any collection published to the [dev container features spec](https://containers.dev/implementors/features-distribution/) works. Collections already referenced by your `devcontainer.json` are offered without being listed here."
+        }
+      }
+    },
     "commands": [
       {
         "command": "o3s.generateDevcontainer",
-        "title": "o3s: Generate devcontainer.json"
+        "title": "Open the Feature Store",
+        "category": "o3s"
       },
       {
         "command": "o3s.cloneAndSetup",
-        "title": "o3s: Clone and Set Up"
+        "title": "Clone o3s",
+        "category": "o3s"
       },
       {
         "command": "o3s.refreshCatalog",
-        "title": "o3s: Refresh Feature Catalog",
+        "title": "Refresh Feature Catalog",
+        "category": "o3s",
         "icon": "$(refresh)"
       }
     ],

@@ -1,0 +1,71 @@
+// NAME
+//        devcontainer.json — the o3s dev container (the "cage")
+//
+// DESCRIPTION
+//        The sandboxed dev container: the o3s-base image plus layered features, the remote
+//        user, and the lifecycle scripts. Egress is forced through the o3s gateway and secrets
+//        are injected through the proxy.
+//
+// SEE ALSO
+//        compose.yaml, config.toml, https://containers.dev
+{
+    // Name for the dev container
+    "name": "o3s",
+    // Deal with zombie processes
+    "init": true,
+    // Location of compose file
+    "dockerComposeFile": "compose.yaml",
+    // Which container from compose should be entered
+    "service": "cage",
+    // Additional software layered onto the o3s image.
+    "features": {
+        "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
+            "disableNonessentialTraffic": true,
+            "settingsJson": "{\\\"env\\\":{\\\"IS_DEMO\\\":\\\"1\\\"},\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}",
+            "stateDir": "/home/ubuntu/features/claude",
+            "version": "latest"
+        },
+        "ghcr.io/hansehart/devcontainer-features/codex:1": {
+            "stateDir": "/home/ubuntu/features/codex",
+            "version": "latest"
+        },
+        "ghcr.io/hansehart/devcontainer-features/docker-in-docker:2": {
+            "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}",
+            "version": "latest"
+        }
+        // Parked, with the state directory each one wants. A write edits entries in place.
+        // "ghcr.io/devcontainers/features/github-cli:1": {},
+        // "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {},
+        // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+        // "ghcr.io/hansehart/devcontainer-features/latex:1": {
+        //     "scheme": "scheme-basic",
+        //     "stateDir": "/home/ubuntu/features/latex"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/node:1": {
+        //     "stateDir": "/home/ubuntu/features/node"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/uv:1": {
+        //     "python": "3.13",
+        //     "stateDir": "/home/ubuntu/features/uv"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/sops:1": {
+        //     "stateDir": "/home/ubuntu/features/sops"
+        // }
+    },
+    // Non-root user VS Code connects as
+    "remoteUser": "ubuntu",
+    // Which folder is the default inside the dev container
+    "workspaceFolder": "/home/ubuntu/o3s",
+    // Seed the allowlist from its template and derive the cage environment from it
+    "initializeCommand": "bash .devcontainer/lifecycle/initialize.sh",
+    // Probe that egress reaches the gateway on every container start
+    "postStartCommand": "bash .devcontainer/lifecycle/post-start.sh",
+    // VSCode settings
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "remote.autoForwardPorts": false
+            }
+        }
+    }
+}

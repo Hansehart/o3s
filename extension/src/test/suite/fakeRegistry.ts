@@ -21,11 +21,7 @@ export interface FakeRegistry {
 const MANIFEST = /^\/v2\/(.+)\/manifests\/latest$/;
 const BLOB = /^\/v2\/(.+)\/blobs\/(.+)$/;
 
-/**
- * An OCI registry that answers the requests a collection fetch makes: a challenge, a
- * token, then the manifest and its blob. It serves only the namespaces it is given, so
- * an unlisted one 404s the way an unknown collection does.
- */
+/** An OCI registry answering what a collection fetch asks: challenge, token, manifest, blob. */
 export async function startRegistry(
   options: {
     namespaces?: string[];
@@ -55,6 +51,7 @@ export async function startRegistry(
       return;
     }
 
+    // Serving only the listed namespaces makes any other one 404 like an unknown collection.
     const manifest = MANIFEST.exec(url.pathname);
     if (manifest && namespaces.includes(manifest[1])) {
       if (!options.anonymous && !req.headers.authorization) {

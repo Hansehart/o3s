@@ -1,10 +1,9 @@
 import * as assert from "assert";
-import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { MainViewProvider } from "../../mainViewProvider";
-import { SOURCES_FILE, templatePath } from "../../devcontainerGenerator";
-import { loadSources } from "../../catalog";
+import { DEVCONTAINER_FILE } from "../../devcontainerFile";
+import { PROVIDERS_SETTING, configuredProviders } from "../../providers";
 import { removeCheckout, tempCheckout } from "./fixtures";
 import { FakeRegistry, startRegistry } from "./fakeRegistry";
 
@@ -14,6 +13,11 @@ const ADDED = "acme/two";
 /** Served by nothing, so it stands in for a ref that does not resolve. */
 const MISSING = "acme/missing";
 
+const setProviders = (value: string[] | undefined): Thenable<void> =>
+  vscode.workspace
+    .getConfiguration("o3s")
+    .update(PROVIDERS_SETTING, value, vscode.ConfigurationTarget.Global);
+
 interface FakeView {
   view: vscode.WebviewView;
   /** Hands a message to the provider the way the webview would, and awaits the handling. */
@@ -22,9 +26,8 @@ interface FakeView {
 }
 
 /**
- * The parts of a WebviewView the provider actually touches. The message handler is
- * captured rather than delivered through a real webview, so a test drives `onMessage`
- * directly instead of round-tripping through a DOM.
+ * The parts of a WebviewView the provider touches. Capturing the message handler lets a
+ * test drive `onMessage` directly.
  */
 function fakeView(): FakeView {
   let handler: ((message: unknown) => Promise<void>) | undefined;
@@ -77,8 +80,6 @@ suite("mainViewProvider: adding a provider", () => {
   let warnings: string[];
   const realShowWarning = vscode.window.showWarningMessage;
 
-  const sourcesFile = (): string => templatePath(root, SOURCES_FILE);
-  const read = (): string => fs.readFileSync(sourcesFile(), "utf8");
   const ref = (namespace: string): string => `${registry.origin}/${namespace}`;
 
   /** Counts what a fetch of `namespace` costs, which is one manifest read per walk. */
@@ -103,10 +104,9 @@ suite("mainViewProvider: adding a provider", () => {
     // Anonymous, so one walk of the registry is exactly one manifest request.
     registry = await startRegistry({ namespaces: [SEEDED, ADDED], anonymous: true });
     storage = tempCheckout();
-    root = tempCheckout({
-      [SOURCES_FILE]: `{ "collections": ["${ref(SEEDED)}"], "overrides": {} }`,
-    });
+    root = tempCheckout({ [DEVCONTAINER_FILE]: `{ "name": "test" }` });
     log = vscode.window.createOutputChannel("o3s-test", { log: true });
+    await setProviders([ref(SEEDED)]);
 
     warnings = [];
     vscode.window.showWarningMessage = ((message: string) => {
@@ -118,6 +118,7 @@ suite("mainViewProvider: adding a provider", () => {
 
   teardown(async () => {
     vscode.window.showWarningMessage = realShowWarning;
+    await setProviders(undefined);
     log.dispose();
     await registry.close();
     removeCheckout(root);
@@ -128,11 +129,11 @@ suite("mainViewProvider: adding a provider", () => {
     const view = await start();
     await view.send({ type: "addProvider", ref: ref(ADDED) });
 
-    assert.deepStrictEqual(loadSources(root).collections, [ref(SEEDED), ref(ADDED)]);
+    assert.deepStrictEqual(configuredProviders(), [ref(SEEDED), ref(ADDED)]);
     assert.strictEqual(
       manifests(ADDED),
       1,
-      "checking the ref before writing it would walk the registry twice"
+      "checking the ref before adding it would walk the registry twice"
     );
     assert.deepStrictEqual(warnings, [], "a provider that resolves says nothing");
   });
@@ -147,11 +148,11 @@ suite("mainViewProvider: adding a provider", () => {
     );
   });
 
-  test("a ref that does not resolve is still written, so it can be corrected in the file", async () => {
+  test("a ref that does not resolve is still added, so it can be corrected in the settings", async () => {
     const view = await start();
     await view.send({ type: "addProvider", ref: ref(MISSING) });
 
-    assert.deepStrictEqual(loadSources(root).collections, [ref(SEEDED), ref(MISSING)]);
+    assert.deepStrictEqual(configuredProviders(), [ref(SEEDED), ref(MISSING)]);
   });
 
   test("a ref that does not resolve says so, rather than failing silently", async () => {
@@ -176,13 +177,16 @@ suite("mainViewProvider: adding a provider", () => {
     );
   });
 
-  test("a ref that is not a collection is refused before anything is written", async () => {
+  test("a ref that is not a collection is refused before anything is added", async () => {
     const view = await start();
-    const before = read();
 
     await view.send({ type: "addProvider", ref: "ghcr.io" });
 
-    assert.strictEqual(read(), before, "a ref with no namespace never reaches the file");
-    assert.deepStrictEqual(warnings, [], "nothing was written, so this is an error, not a warning");
+    assert.deepStrictEqual(
+      configuredProviders(),
+      [ref(SEEDED)],
+      "a ref with no namespace never reaches the settings"
+    );
+    assert.deepStrictEqual(warnings, [], "nothing was added, so this is an error, not a warning");
   });
 });
