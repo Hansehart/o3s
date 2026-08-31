@@ -28,7 +28,9 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly log: vscode.LogOutputChannel
+    private readonly log: vscode.LogOutputChannel,
+    /** How the checkout is found, which a test outside a workspace supplies for itself. */
+    private readonly findRoot: () => string | undefined = projectRoot
   ) {}
 
   private assets(webview: vscode.Webview): WebviewAssets {
@@ -157,11 +159,19 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
     if (message.type === "addProvider") {
       try {
-        // Fetched first, so only a ref that resolves reaches the tracked file.
+        // Written first, then read back along with every other collection, so adding a
+        // provider costs one walk of the registry rather than two. A ref that does not
+        // resolve is kept and reported rather than undone, leaving the tracked file the
+        // one place a provider is added or removed.
         const { resource } = parseCollectionRef(message.ref);
-        await fetchCollection(resource);
         addCollection(root, resource);
         await this.refresh();
+
+        if (!this.fetched.has(resource)) {
+          vscode.window.showWarningMessage(
+            `o3s: added ${resource}, but it could not be read - see the o3s log.`
+          );
+        }
       } catch (error) {
         report(this.log, `could not add ${message.ref}`, error);
       }
@@ -190,7 +200,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this.context.extensionUri],
     };
     this.view = webviewView;
-    this.root = projectRoot();
+    this.root = this.findRoot();
 
     const listener = webviewView.webview.onDidReceiveMessage((message: WebviewMessage) =>
       this.onMessage(message)
