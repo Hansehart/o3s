@@ -41,6 +41,8 @@ services:
       - projects:/home/ubuntu/projects
       # Public proxy CA, folded into the trust store
       - ${HOME}/.config/o3s/mitmproxy-ca.crt:/usr/local/share/ca-certificates/mitmproxy-ca.crt:ro
+      # Directory a nested daemon shares its socket in, for the host to reach its containers
+      - ${HOME}/.${O3S_STACK}-docker-host:/run/docker-host
     # Limit ressource usage
     deploy:
       resources:
