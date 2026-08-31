@@ -39,13 +39,9 @@ const VSCODE_API_STUB = `
 `;
 
 /**
- * Renders a page in headless Chrome, runs `driver` inside it, and returns the
- * resulting DOM. The driver reports findings via `report(name, value)`, which
- * this reads back out of `data-probe` attributes.
- *
- * The stub goes in `<head>` so the page's own script finds `acquireVsCodeApi`
- * already defined, and the theme is linked rather than inlined so the page's
- * `style-src` applies to it unchanged.
+ * Renders a page in headless Chrome, runs `driver` in it, and returns the DOM; the driver
+ * reports through `report(name, value)`, read back out of `data-probe`. The stub sits in
+ * `<head>` to precede the page's script, and the theme is linked so `style-src` covers it.
  */
 function render(html: string, driver: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-webview-"));
