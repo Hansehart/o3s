@@ -1,0 +1,15 @@
+// media/ runs in the webview, so it is checked on its own against the browser
+// libs, and emits nothing, since the scripts ship as they are.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    // Only what the files reference, so every global comes from the libs above.
+    "types": []
+  },
+  "include": ["media/**/*.js"]
+}

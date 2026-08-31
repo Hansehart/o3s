@@ -1,0 +1,358 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+}
+
+.features-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.open-project-page,
+.notice-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  height: 100%;
+  padding: 32px 20px;
+}
+
+.open-project-page .logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+}
+
+.open-project-page h3,
+.notice-page h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.open-project-page p,
+.notice-page p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-descriptionForeground);
+  max-width: 220px;
+}
+
+.open-project-page button,
+.notice-page button {
+  width: auto;
+  padding: 6px 16px;
+}
+
+.header {
+  padding: 14px 12px 6px;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.section h4 {
+  margin: 12px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.list {
+  padding: 4px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Two classes, so this holds whatever order the card's own display rule lands in. */
+.feature-card.hidden {
+  display: none;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 6px;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.feature-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-list-hoverBackground);
+}
+
+/* The options only matter once the feature is on, and they are noisy before then. */
+.feature-card:not(.on) .feature-options {
+  display: none;
+}
+
+.feature-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.option-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.option-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--vscode-descriptionForeground);
+}
+
+.option input[type="text"],
+.option select {
+  width: 100%;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border));
+  border-radius: 4px;
+}
+
+.option input[type="checkbox"] {
+  align-self: flex-start;
+  width: 14px;
+  height: 14px;
+}
+
+.reset {
+  align-self: flex-start;
+  width: auto;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 400;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+}
+
+.reset:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.version {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.extensions {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* A sandbox should say what a feature gives up before it is switched on. */
+.security {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.docs {
+  font-size: 11px;
+  color: var(--vscode-textLink-foreground, var(--vscode-focusBorder));
+}
+
+.providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 12px 4px;
+}
+
+.providers button {
+  width: auto;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 400;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+}
+
+.providers button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+}
+
+.add-provider {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 12px;
+}
+
+.add-provider input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border));
+  border-radius: 4px;
+}
+
+.add-provider button {
+  width: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.feature-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--vscode-descriptionForeground);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border));
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  top: 2px;
+  background: var(--vscode-foreground);
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+.switch input:checked + .slider {
+  background: var(--vscode-button-background);
+  border-color: var(--vscode-button-background);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(14px);
+  background: var(--vscode-button-foreground);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+#count {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+button {
+  width: 100%;
+  padding: 8px 10px;
+  font-weight: 600;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}

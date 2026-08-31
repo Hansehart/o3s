@@ -32,36 +32,25 @@
         "ghcr.io/hansehart/devcontainer-features/docker-in-docker:2": {
             "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}",
             "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/github-cli:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
-        //     "version": "latest"
-        // },
-        // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-        //     "helm": "latest",
-        //     "minikube": "latest",
-        //     "version": "latest" // kubectl
-        // },
+        }
+        // Parked, with the state directory each one wants. A write edits entries in place.
+        // "ghcr.io/devcontainers/features/github-cli:1": {},
+        // "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {},
+        // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
         // "ghcr.io/hansehart/devcontainer-features/latex:1": {
         //     "scheme": "scheme-basic",
-        //     "stateDir": "/home/ubuntu/features/latex",
-        //     "version": "2025"
+        //     "stateDir": "/home/ubuntu/features/latex"
         // },
         // "ghcr.io/hansehart/devcontainer-features/node:1": {
-        //     "stateDir": "/home/ubuntu/features/node",
-        //     "version": "lts"
+        //     "stateDir": "/home/ubuntu/features/node"
         // },
         // "ghcr.io/hansehart/devcontainer-features/uv:1": {
         //     "python": "3.13",
-        //     "stateDir": "/home/ubuntu/features/uv",
-        //     "version": "latest"
+        //     "stateDir": "/home/ubuntu/features/uv"
         // },
         // "ghcr.io/hansehart/devcontainer-features/sops:1": {
-        //     "stateDir": "/home/ubuntu/features/sops",
-        //     "version": "latest"
-        }
+        //     "stateDir": "/home/ubuntu/features/sops"
+        // }
     },
     // Non-root user VS Code connects as
     "remoteUser": "ubuntu",

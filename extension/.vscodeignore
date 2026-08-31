@@ -1,0 +1,8 @@
+.gitignore
+.vscode-test.mjs
+eslint.config.mjs
+**/*.map
+.vscode-test/**
+out/test/**
+src/**
+tsconfig*.json

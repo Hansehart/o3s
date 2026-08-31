@@ -1,0 +1,42 @@
+name: Check the VS Code extension
+on:
+  pull_request:
+    paths:
+      - 'extension/**'
+      - '.github/workflows/extension.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'extension/**'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: extension
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # check out the repo so the extension sources are there to build
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # provide the Node runtime the compiler and the test runner need
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      # install exactly what the lockfile pins
+      - run: npm ci
+
+      # type-check the extension sources and the webview scripts
+      - run: npm run lint
+
+      # the suite drives a real VS Code, which needs a display; the runner ships
+      # xvfb and google-chrome, which is what the webview harness falls back to
+      - run: xvfb-run -a npm test
