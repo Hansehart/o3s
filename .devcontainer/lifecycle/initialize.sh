@@ -28,12 +28,8 @@ install -d -m 700 "$SECRETS_DIR"
 # Generate this host's egress-proxy CA
 bash .devcontainer/proxy/gen-ca.sh
 
-# The stack these compose files name, which the last of them decides
-STACK=o3s
-for f in $(grep -o '"compose[^"]*\.yaml"' .devcontainer/devcontainer.json | tr -d '"'); do
-  n="$(sed -n 's/^name:[[:space:]]*//p' ".devcontainer/$f" | head -1)"
-  [ -n "$n" ] && STACK="$n"
-done
+# The stack this cage runs as, which its own mounts are named for
+STACK="${O3S_STACK:-o3s}"
 
 # Load the cage's confinement profile where this host's kernel enforces AppArmor
 PROFILE=.devcontainer/apparmor.conf
