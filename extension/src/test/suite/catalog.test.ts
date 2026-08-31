@@ -1,13 +1,9 @@
 import * as assert from "assert";
 import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
 import { PublishedFeature } from "../../registry";
 import { addCollection, buildCatalog, loadSources } from "../../catalog";
-import { templatePath } from "../../devcontainerGenerator";
-
-const OURS = "ghcr.io/hansehart/devcontainer-features";
-const THEIRS = "ghcr.io/devcontainers/features";
+import { SOURCES_FILE, templatePath } from "../../devcontainerGenerator";
+import { OURS, THEIRS, removeCheckout, tempCheckout } from "./fixtures";
 
 const node = (over: Partial<PublishedFeature> = {}): PublishedFeature => ({
   id: "node",
@@ -52,7 +48,6 @@ suite("catalog: buildCatalog", () => {
     );
     assert.deepStrictEqual(entry.defaults, { version: "lts", stateDir: "" });
     assert.deepStrictEqual(entry.values, { version: "lts", stateDir: "/home/ubuntu/features/node" });
-    assert.deepStrictEqual(entry.overrides, { stateDir: "/home/ubuntu/features/node" });
   });
 
   test("the same id in two collections stays two entries, and an override picks one", () => {
@@ -125,8 +120,8 @@ suite("catalog: buildCatalog", () => {
       fetched({ [OURS]: [node({ deprecated: true }), dind] })
     );
     assert.deepStrictEqual(
-      catalog.map((e) => e.id),
-      ["docker-in-docker", "node"]
+      catalog.map((e) => e.base),
+      [`${OURS}/docker-in-docker`, `${OURS}/node`]
     );
     assert.strictEqual(catalog[1].deprecated, true);
   });
@@ -158,16 +153,15 @@ suite("catalog: sources file", () => {
   let root: string;
 
   setup(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-catalog-"));
-    fs.mkdirSync(path.dirname(templatePath(root, "features.json")), { recursive: true });
+    root = tempCheckout({ [SOURCES_FILE]: "{}" });
   });
 
-  teardown(() => fs.rmSync(root, { recursive: true, force: true }));
+  teardown(() => removeCheckout(root));
 
   const write = (contents: string) =>
-    fs.writeFileSync(templatePath(root, "features.json"), contents, "utf8");
+    fs.writeFileSync(templatePath(root, SOURCES_FILE), contents, "utf8");
 
-  const read = () => fs.readFileSync(templatePath(root, "features.json"), "utf8");
+  const read = () => fs.readFileSync(templatePath(root, SOURCES_FILE), "utf8");
 
   test("reads the collections and the overrides", () => {
     write(`{

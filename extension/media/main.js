@@ -27,6 +27,21 @@
       Array.from(card.querySelectorAll("[data-option]"))
     );
 
+  /** A checkbox carries its value in `checked`, every other control in `value`. */
+  const isCheckbox = (control) =>
+    control instanceof HTMLInputElement && control.type === "checkbox";
+
+  const valueOf = (control) => (isCheckbox(control) ? control.checked : control.value);
+
+  const seedControl = (control) => {
+    const seed = control.dataset.seed ?? "";
+    if (isCheckbox(control)) {
+      control.checked = seed === "true";
+    } else {
+      control.value = seed;
+    }
+  };
+
   const count = /** @type {HTMLElement} */ (document.getElementById("count"));
 
   /** Restates how much of the catalog is switched on. */
@@ -81,14 +96,7 @@
 
     if (target.classList.contains("reset")) {
       // Each control back to the seed the extension rendered it with, which is the o3s default.
-      for (const control of controlsOf(target.closest(".feature-card"))) {
-        const seed = control.dataset.seed ?? "";
-        if (control instanceof HTMLInputElement && control.type === "checkbox") {
-          control.checked = seed === "true";
-        } else {
-          control.value = seed;
-        }
-      }
+      controlsOf(target.closest(".feature-card")).forEach(seedControl);
     }
   });
 
@@ -107,12 +115,7 @@
       .map((card) => ({
         base: card.dataset.base,
         values: Object.fromEntries(
-          controlsOf(card).map((control) => [
-            control.dataset.option,
-            control instanceof HTMLInputElement && control.type === "checkbox"
-              ? control.checked
-              : control.value,
-          ])
+          controlsOf(card).map((control) => [control.dataset.option, valueOf(control)])
         ),
       }));
     vscode.postMessage({ type: "generate", selected: chosen });

@@ -1,7 +1,7 @@
 import * as fs from "fs";
-import { applyEdits, modify } from "jsonc-parser";
+import { applyEdits, modify, parse as parseJsonc } from "jsonc-parser";
 import { FeatureOption, PublishedFeature, majorOf, parseCollectionRef } from "./registry";
-import { readJsonc, templatePath } from "./devcontainerGenerator";
+import { SOURCES_FILE, readJsonc, templatePath } from "./devcontainerGenerator";
 
 export type OptionValue = string | boolean;
 
@@ -18,7 +18,6 @@ export interface CatalogEntry {
   /** The ref a generated devcontainer.json carries, pinned to the published major. */
   ref: string;
   collection: string;
-  id: string;
   label: string;
   description: string;
   version: string;
@@ -33,30 +32,33 @@ export interface CatalogEntry {
   options: Record<string, FeatureOption>;
   /** The published defaults, which decide what is worth writing out. */
   defaults: Record<string, OptionValue>;
-  /** The o3s values layered over them, kept apart so a control can be reset to them. */
-  overrides: Record<string, OptionValue>;
+  /** The published defaults under the o3s overrides: what a control is seeded and reset to. */
   values: Record<string, OptionValue>;
 }
 
 export type Catalog = CatalogEntry[];
 
-const SOURCES_FILE = "features.json";
+const asSources = (parsed: Partial<Sources> | undefined): Sources => ({
+  collections: parsed?.collections ?? [],
+  overrides: parsed?.overrides ?? {},
+});
 
 export function loadSources(root: string): Sources {
-  const parsed = readJsonc<Partial<Sources> | undefined>(templatePath(root, SOURCES_FILE));
-  return { collections: parsed?.collections ?? [], overrides: parsed?.overrides ?? {} };
+  return asSources(readJsonc<Partial<Sources> | undefined>(templatePath(root, SOURCES_FILE)));
 }
 
 /** Appends a collection as a surgical edit, keeping the file's comments and formatting. */
 export function addCollection(root: string, ref: string): void {
   const { resource } = parseCollectionRef(ref);
   const file = templatePath(root, SOURCES_FILE);
-  const collections: string[] = loadSources(root).collections;
+
+  // Read once, so the list that is checked is the one the edit is applied to.
+  const contents = fs.readFileSync(file, "utf8");
+  const { collections } = asSources(parseJsonc(contents));
   if (collections.includes(resource)) {
     return;
   }
 
-  const contents = fs.readFileSync(file, "utf8");
   const edits = modify(contents, ["collections", collections.length], resource, {
     formattingOptions: { insertSpaces: true, tabSize: 4 },
   });
@@ -113,7 +115,6 @@ function toEntry(
     base,
     ref: `${base}:${major}`,
     collection,
-    id: feature.id,
     label: feature.name ?? feature.id,
     description: feature.description ?? "",
     version: feature.version,
@@ -126,7 +127,6 @@ function toEntry(
     legacyIds: feature.legacyIds ?? [],
     options,
     defaults,
-    overrides: applicable,
     values: { ...defaults, ...applicable },
   };
 }

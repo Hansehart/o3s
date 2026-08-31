@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
-import { asError, createLog } from "./log";
+import { createLog } from "./log";
+import { cloneRepository } from "./clone";
 import { MainViewProvider } from "./mainViewProvider";
-
-/** HTTPS rather than SSH, so the clone travels the path the gateway injects GH_TOKEN into. */
-const REPO_URL = "https://github.com/Hansehart/o3s.git";
 
 export function activate(context: vscode.ExtensionContext) {
   const log = createLog(context);
@@ -17,19 +15,12 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new MainViewProvider(context, log);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("o3s.generateDevcontainer", () => {
-      vscode.commands.executeCommand("workbench.view.extension.o3s");
-    }),
+    // The view's own focus command, which VS Code registers for every contributed view.
+    vscode.commands.registerCommand("o3s.generateDevcontainer", () =>
+      vscode.commands.executeCommand("o3s.mainView.focus")
+    ),
     vscode.commands.registerCommand("o3s.refreshCatalog", () => provider.refresh()),
-    vscode.commands.registerCommand("o3s.cloneAndSetup", async () => {
-      log.info("executing git.clone");
-      try {
-        await vscode.commands.executeCommand("git.clone", REPO_URL);
-      } catch (error) {
-        log.error(asError(error));
-        vscode.window.showErrorMessage(`o3s: could not clone o3s - ${error}`);
-      }
-    }),
+    vscode.commands.registerCommand("o3s.cloneAndSetup", () => cloneRepository(log)),
     vscode.window.registerWebviewViewProvider("o3s.mainView", provider)
   );
 }

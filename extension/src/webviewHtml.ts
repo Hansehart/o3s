@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import escapeHtml from "escape-html";
 import { Catalog, CatalogEntry, OptionValue } from "./catalog";
-import { FeatureOption } from "./registry";
+import { FeatureOption, parseCollectionRef } from "./registry";
 
 /** The webview-resolved locations the pages link to, as `asWebviewUri` returns them. */
 export interface WebviewAssets {
@@ -42,11 +42,15 @@ ${body}
 </html>`;
 }
 
-const attr = (value: string): string => escapeHtml(value);
-
-/** The last segment of a collection ref, which is what a provider is known by. */
-const providerName = (collection: string): string =>
-  collection.split("/").slice(1).join("/") || collection;
+/** The namespace a collection ref carries, which is what a provider is known by. */
+const providerName = (collection: string): string => {
+  try {
+    return parseCollectionRef(collection).namespace;
+  } catch {
+    // A ref the sidebar could not parse still deserves a tab, labelled with what it says.
+    return collection;
+  }
+};
 
 /**
  * One control per published option, chosen by the declared shape: an `enum` becomes a
@@ -55,27 +59,27 @@ const providerName = (collection: string): string =>
 function optionHtml(base: string, name: string, option: FeatureOption, value: OptionValue): string {
   const id = `${base}::${name}`;
   const seed = String(value);
-  const shared = `data-option="${attr(name)}" data-seed="${attr(seed)}"`;
+  const shared = `data-option="${escapeHtml(name)}" data-seed="${escapeHtml(seed)}"`;
 
   let control: string;
   if (option.type === "boolean") {
     control = `<input type="checkbox" ${shared}${value ? " checked" : ""}>`;
-  } else if ("enum" in option && option.enum) {
+  } else if (option.enum) {
     const choices = option.enum
-      .map((c) => `<option value="${attr(c)}"${c === value ? " selected" : ""}>${escapeHtml(c)}</option>`)
+      .map((c) => `<option value="${escapeHtml(c)}"${c === value ? " selected" : ""}>${escapeHtml(c)}</option>`)
       .join("");
     control = `<select ${shared}>${choices}</select>`;
-  } else if ("proposals" in option && option.proposals) {
+  } else if (option.proposals) {
     const list = `${id}::list`;
-    const choices = option.proposals.map((c) => `<option value="${attr(c)}">`).join("");
-    control = `<input type="text" list="${attr(list)}" ${shared} value="${attr(seed)}">
-        <datalist id="${attr(list)}">${choices}</datalist>`;
+    const choices = option.proposals.map((c) => `<option value="${escapeHtml(c)}">`).join("");
+    control = `<input type="text" list="${escapeHtml(list)}" ${shared} value="${escapeHtml(seed)}">
+        <datalist id="${escapeHtml(list)}">${choices}</datalist>`;
   } else {
-    control = `<input type="text" ${shared} value="${attr(seed)}">`;
+    control = `<input type="text" ${shared} value="${escapeHtml(seed)}">`;
   }
 
   const description = option.description
-    ? `<span class="option-desc" data-describes="${attr(name)}">${escapeHtml(option.description)}</span>`
+    ? `<span class="option-desc" data-describes="${escapeHtml(name)}">${escapeHtml(option.description)}</span>`
     : "";
 
   return `<div class="option">
@@ -94,7 +98,7 @@ function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | und
     : "";
 
   const docs = entry.documentationURL
-    ? `<a class="docs" href="${attr(entry.documentationURL)}">Docs</a>`
+    ? `<a class="docs" href="${escapeHtml(entry.documentationURL)}">Docs</a>`
     : "";
 
   const extensions = entry.extensions.length
@@ -108,7 +112,7 @@ function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | und
     .map(([name, option]) => optionHtml(entry.base, name, option, values[name] ?? ""))
     .join("\n");
 
-  return `<div class="feature-card${on ? " on" : ""}" data-base="${attr(entry.base)}" data-collection="${attr(entry.collection)}">
+  return `<div class="feature-card${on ? " on" : ""}" data-base="${escapeHtml(entry.base)}" data-collection="${escapeHtml(entry.collection)}">
       <div class="feature-head">
         <label class="switch">
           <input type="checkbox" class="toggle"${on ? " checked" : ""}>
@@ -145,7 +149,7 @@ export function featuresHtml(assets: WebviewAssets, model: FeaturesModel): strin
   const providers = model.collections
     .map(
       (collection, index) =>
-        `<button type="button" class="provider${index === 0 ? " active" : ""}" data-provider="${attr(collection)}">${escapeHtml(providerName(collection))}</button>`
+        `<button type="button" class="provider${index === 0 ? " active" : ""}" data-provider="${escapeHtml(collection)}">${escapeHtml(providerName(collection))}</button>`
     )
     .join("");
 

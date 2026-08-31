@@ -1,14 +1,6 @@
 import * as assert from "assert";
-import * as http from "http";
-import { AddressInfo } from "net";
-import {
-  COLLECTION_MEDIA_TYPE,
-  PublishedFeature,
-  fetchCollection,
-  majorOf,
-  parseCollectionRef,
-  stripVersion,
-} from "../../registry";
+import { fetchCollection, majorOf, parseCollectionRef, stripVersion } from "../../registry";
+import { FakeRegistry, NAMESPACE, startRegistry } from "./fakeRegistry";
 
 suite("registry: ref parsing", () => {
   test("splits a collection ref into registry and namespace", () => {
@@ -73,103 +65,6 @@ suite("registry: version helpers", () => {
     assert.throws(() => majorOf("latest"));
   });
 });
-
-/** A feature as a collection publishes it, trimmed to what these tests assert on. */
-const FEATURES: PublishedFeature[] = [
-  { id: "node", version: "1.0.1", name: "Node.js", description: "Installs Node.js." },
-  { id: "uv", version: "1.1.5", name: "uv (Python)", description: "Installs uv." },
-];
-
-const NAMESPACE = "acme/features";
-
-interface FakeRegistry {
-  origin: string;
-  requests: string[];
-  authorizations: (string | undefined)[];
-  close: () => Promise<void>;
-}
-
-/**
- * An OCI registry that answers the three requests a collection fetch makes: a
- * challenge, a token, then the manifest and its blob. `blobHandler` stands in for
- * the last hop so a test can redirect it or drop the layer.
- */
-async function startRegistry(options: {
-  layerMediaType?: string;
-  redirectBlob?: boolean;
-  anonymous?: boolean;
-} = {}): Promise<FakeRegistry> {
-  const digest = "sha256:" + "a".repeat(64);
-  const requests: string[] = [];
-  const authorizations: (string | undefined)[] = [];
-
-  const server = http.createServer((req, res) => {
-    const url = new URL(req.url ?? "/", "http://localhost");
-    requests.push(url.pathname);
-    authorizations.push(req.headers.authorization);
-
-    const send = (status: number, body: unknown, headers: http.OutgoingHttpHeaders = {}) => {
-      const payload = JSON.stringify(body);
-      res.writeHead(status, { "content-type": "application/json", ...headers });
-      res.end(payload);
-    };
-
-    if (url.pathname === "/token") {
-      send(200, { token: `token-for-${url.searchParams.get("scope")}` });
-      return;
-    }
-
-    if (url.pathname === `/v2/${NAMESPACE}/manifests/latest`) {
-      if (!options.anonymous && !req.headers.authorization) {
-        res.writeHead(401, {
-          "www-authenticate": `Bearer realm="http://localhost:${port}/token",service="fake"`,
-        });
-        res.end();
-        return;
-      }
-      send(200, {
-        schemaVersion: 2,
-        layers: [
-          { mediaType: "application/vnd.oci.image.layer.v1.tar", digest: "sha256:other", size: 1 },
-          {
-            mediaType: options.layerMediaType ?? COLLECTION_MEDIA_TYPE,
-            digest,
-            size: 2,
-          },
-        ],
-      });
-      return;
-    }
-
-    if (url.pathname === `/v2/${NAMESPACE}/blobs/${digest}`) {
-      if (options.redirectBlob) {
-        res.writeHead(307, { location: `http://localhost:${port}/elsewhere` });
-        res.end();
-        return;
-      }
-      send(200, { sourceInformation: { source: "devcontainer-cli" }, features: FEATURES });
-      return;
-    }
-
-    if (url.pathname === "/elsewhere") {
-      send(200, { sourceInformation: { source: "devcontainer-cli" }, features: FEATURES });
-      return;
-    }
-
-    res.writeHead(404);
-    res.end();
-  });
-
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const port = (server.address() as AddressInfo).port;
-
-  return {
-    origin: `localhost:${port}`,
-    requests,
-    authorizations,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
-  };
-}
 
 suite("registry: fetchCollection", () => {
   let registry: FakeRegistry | undefined;

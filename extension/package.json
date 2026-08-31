@@ -11,9 +11,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "workspaceContains:.devcontainer/templates/features.json"
-  ],
   "main": "./out/extension.js",
   "extensionKind": [
     "workspace"

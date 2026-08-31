@@ -1,7 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { asError } from "./log";
+import { asError, report } from "./log";
+import { cloneRepository } from "./clone";
 import {
   WebviewAssets,
   errorHtml,
@@ -22,6 +23,8 @@ type WebviewMessage =
 export class MainViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private root?: string;
+  /** What the last read of the registry returned, so writing does not repeat it. */
+  private fetched = new Map<string, PublishedFeature[]>();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -64,26 +67,34 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /** Reads every collection the sources name, preferring the registry over the cached copy. */
-  private async collect(sources: Sources): Promise<Map<string, PublishedFeature[]>> {
-    const fetched = new Map<string, PublishedFeature[]>();
-    // Each collection on its own, so the sidebar stands on whichever ones resolve.
-    for (const collection of sources.collections) {
-      try {
-        const features = await fetchCollection(collection);
-        this.writeCache(collection, features);
-        fetched.set(collection, features);
-      } catch (error) {
-        const cached = this.readCache(collection);
-        this.log.warn(
-          `${collection}: ${asError(error).message}${cached ? " - using the cached copy" : ""}`
-        );
-        if (cached) {
-          fetched.set(collection, cached);
-        }
-      }
+  /** What a collection publishes: the registry when it answers, the cached copy when it does not. */
+  private async read(collection: string): Promise<PublishedFeature[] | undefined> {
+    try {
+      const features = await fetchCollection(collection);
+      this.writeCache(collection, features);
+      return features;
+    } catch (error) {
+      const cached = this.readCache(collection);
+      this.log.warn(
+        `${collection}: ${asError(error).message}${cached ? " - using the cached copy" : ""}`
+      );
+      return cached;
     }
-    return fetched;
+  }
+
+  /**
+   * Reads every collection the sources name, all at once - each is an independent walk of
+   * manifest, token and blob, so the wait is the slowest of them rather than their sum.
+   * Each collection is read on its own, so the sidebar stands on whichever ones resolve.
+   */
+  private async collect(sources: Sources): Promise<Map<string, PublishedFeature[]>> {
+    const read = await Promise.all(
+      sources.collections.map(async (collection) => [collection, await this.read(collection)] as const)
+    );
+    this.fetched = new Map(
+      read.flatMap(([collection, features]) => (features ? [[collection, features] as const] : []))
+    );
+    return this.fetched;
   }
 
   private async render(): Promise<void> {
@@ -113,8 +124,9 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
         selected: new Map(selection.map((s) => [s.base, s.values])),
       });
     } catch (error) {
-      this.log.error(asError(error));
-      view.webview.html = errorHtml(assets, asError(error).message);
+      const failure = asError(error);
+      this.log.error(failure);
+      view.webview.html = errorHtml(assets, failure.message);
     }
   }
 
@@ -130,13 +142,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     const root = this.root;
 
     if (message.type === "clone") {
-      try {
-        await vscode.commands.executeCommand("o3s.cloneAndSetup");
-      } catch (error) {
-        // o3s.cloneAndSetup reports its own failures, so this covers a failed dispatch.
-        this.log.error(asError(error));
-        vscode.window.showErrorMessage(`o3s: could not start the clone - ${error}`);
-      }
+      await cloneRepository(this.log);
       return;
     }
 
@@ -157,24 +163,24 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
         addCollection(root, resource);
         await this.refresh();
       } catch (error) {
-        this.log.error(asError(error));
-        vscode.window.showErrorMessage(`o3s: could not add ${message.ref} - ${error}`);
+        report(this.log, `could not add ${message.ref}`, error);
       }
       return;
     }
 
     try {
-      // Rebuilt at write time, so an edit made while the panel is open applies.
+      // Rebuilt at write time from what was last read, so an override edited while the panel
+      // is open applies without walking every registry again. A collection added since that
+      // read has no cards on screen, so there is nothing selected from it to write either.
       const sources = loadSources(root);
-      const catalog = buildCatalog(sources, await this.collect(sources));
+      const catalog = buildCatalog(sources, this.fetched, (warning) => this.log.warn(warning));
       generateDevcontainer(root, catalog, message.selected);
       vscode.window.showInformationMessage(
         "devcontainer.json generated. Press Ctrl/Cmd+Shift+P and run \"Rebuild and Reopen in Container\" to apply it.",
         { modal: true }
       );
     } catch (error) {
-      this.log.error(asError(error));
-      vscode.window.showErrorMessage(`o3s: could not write devcontainer.json - ${error}`);
+      report(this.log, "could not write devcontainer.json", error);
     }
   }
 
@@ -201,7 +207,6 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
 
     this.log.info(`o3s checkout: ${this.root}`);
-    webviewView.webview.html = loadingHtml(this.assets(webviewView.webview));
-    void this.render();
+    void this.refresh();
   }
 }

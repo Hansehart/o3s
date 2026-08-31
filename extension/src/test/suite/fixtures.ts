@@ -1,5 +1,25 @@
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import { PublishedFeature } from "../../registry";
 import { Catalog, buildCatalog } from "../../catalog";
+import { templatePath } from "../../devcontainerGenerator";
+
+/**
+ * A throwaway checkout carrying the named templates, which is what the suites work in.
+ * Passing nothing gives a folder that is deliberately not an o3s checkout.
+ */
+export function tempCheckout(templates: Record<string, string> = {}): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-"));
+  for (const [name, contents] of Object.entries(templates)) {
+    fs.mkdirSync(path.dirname(templatePath(root, name)), { recursive: true });
+    fs.writeFileSync(templatePath(root, name), contents, "utf8");
+  }
+  return root;
+}
+
+export const removeCheckout = (root: string): void =>
+  fs.rmSync(root, { recursive: true, force: true });
 
 /** Two real collections, and the ids the suites reach for by name. */
 export const OURS = "ghcr.io/hansehart/devcontainer-features";

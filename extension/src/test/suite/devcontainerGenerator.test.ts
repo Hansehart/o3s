@@ -1,16 +1,26 @@
 import * as assert from "assert";
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
 import {
+  SKELETON_FILE,
+  SOURCES_FILE,
   devcontainerPath,
   generateDevcontainer,
   isProjectRoot,
   loadCurrentSelection,
-  templatePath,
 } from "../../devcontainerGenerator";
 import { buildCatalog } from "../../catalog";
-import { CATALOG, CLAUDE, GITHUB, OURS, OVERRIDES, PUBLISHED, entryFor } from "./fixtures";
+import {
+  CATALOG,
+  CLAUDE,
+  GITHUB,
+  OURS,
+  OVERRIDES,
+  PUBLISHED,
+  entryFor,
+  removeCheckout,
+  tempCheckout,
+} from "./fixtures";
 
 const UNKNOWN = "ghcr.io/devcontainers/features/never-in-the-catalog";
 
@@ -38,12 +48,10 @@ suite("devcontainerGenerator", () => {
     JSON.parse(fs.readFileSync(devcontainerPath(root), "utf8"));
 
   setup(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-test-"));
-    fs.mkdirSync(path.dirname(templatePath(root, "devcontainer.json")), { recursive: true });
-    fs.writeFileSync(templatePath(root, "devcontainer.json"), SKELETON, "utf8");
+    root = tempCheckout({ [SKELETON_FILE]: SKELETON });
   });
 
-  teardown(() => fs.rmSync(root, { recursive: true, force: true }));
+  teardown(() => removeCheckout(root));
 
   test("writes the selection onto the skeleton, tagged with the published major", () => {
     generateDevcontainer(root, CATALOG, [{ base: GITHUB, values: entryFor(GITHUB).values }]);
@@ -93,31 +101,28 @@ suite("devcontainerGenerator", () => {
   });
 
   suite("isProjectRoot", () => {
-    const folder = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "o3s-root-"));
+    let candidate: string;
+
+    teardown(() => removeCheckout(candidate));
 
     test("a checkout carrying the sources file is one", () => {
-      const candidate = folder();
-      fs.mkdirSync(path.dirname(templatePath(candidate, "features.json")), { recursive: true });
-      fs.writeFileSync(templatePath(candidate, "features.json"), "{}", "utf8");
+      candidate = tempCheckout({ [SOURCES_FILE]: "{}" });
       assert.strictEqual(isProjectRoot(candidate), true);
-      fs.rmSync(candidate, { recursive: true, force: true });
     });
 
     test("an unrelated folder is not", () => {
-      const candidate = folder();
+      candidate = tempCheckout();
       assert.strictEqual(isProjectRoot(candidate), false);
-      fs.rmSync(candidate, { recursive: true, force: true });
     });
 
     test("the file the extension reads decides it, not a marker beside it", () => {
-      const candidate = folder();
+      candidate = tempCheckout();
       fs.writeFileSync(path.join(candidate, ".o3s"), "", "utf8");
       assert.strictEqual(
         isProjectRoot(candidate),
         false,
         "a marker without the sources file would offer a catalog that cannot be read"
       );
-      fs.rmSync(candidate, { recursive: true, force: true });
     });
   });
 

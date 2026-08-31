@@ -1,14 +1,16 @@
-import * as http from "http";
-import * as https from "https";
-
 /** The layer a collection artifact publishes its metadata under. */
 export const COLLECTION_MEDIA_TYPE = "application/vnd.devcontainers.collection.layer.v1+json";
 
 /** An option as its feature declares it: `enum` is a closed set, `proposals` a hint. */
 export type FeatureOption =
   | { type: "boolean"; default?: boolean; description?: string }
-  | { type: "string"; enum?: string[]; default?: string; description?: string }
-  | { type: "string"; proposals?: string[]; default?: string; description?: string };
+  | {
+      type: "string";
+      enum?: string[];
+      proposals?: string[];
+      default?: string;
+      description?: string;
+    };
 
 /** A feature as a collection publishes it, over the fields the sidebar reads. */
 export interface PublishedFeature {
@@ -24,7 +26,6 @@ export interface PublishedFeature {
   privileged?: boolean;
   capAdd?: string[];
   securityOpt?: string[];
-  init?: boolean;
   deprecated?: boolean;
   legacyIds?: string[];
 }
@@ -84,42 +85,39 @@ export function majorOf(version: string): string {
   return major;
 }
 
-interface Response {
+type Headers = Record<string, string>;
+
+interface Answer {
   status: number;
-  headers: http.IncomingHttpHeaders;
+  headers: globalThis.Headers;
   body: string;
 }
 
-function get(url: string, headers: http.OutgoingHttpHeaders, timeoutMs: number): Promise<Response> {
-  return new Promise((resolve, reject) => {
-    const request = (url.startsWith("https:") ? https : http).get(url, { headers }, (response) => {
-      const chunks: Buffer[] = [];
-      response.on("data", (chunk: Buffer) => chunks.push(chunk));
-      response.on("end", () =>
-        resolve({
-          status: response.statusCode ?? 0,
-          headers: response.headers,
-          body: Buffer.concat(chunks).toString("utf8"),
-        })
-      );
+/** One request, read to the end. Redirects stay unfollowed so a caller decides what to forward. */
+async function get(url: string, headers: Headers, timeoutMs: number): Promise<Answer> {
+  let response: globalThis.Response;
+  try {
+    response = await fetch(url, {
+      headers,
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
     });
-    request.setTimeout(timeoutMs, () =>
-      request.destroy(new Error(`${url} did not answer within ${timeoutMs}ms`))
-    );
-    request.on("error", reject);
-  });
+  } catch (error) {
+    // A timeout aborts as a bare `TimeoutError`, which names neither the request nor the bound.
+    const reason = error instanceof Error && error.name === "TimeoutError"
+      ? `did not answer within ${timeoutMs}ms`
+      : `could not be reached (${error instanceof Error ? error.message : String(error)})`;
+    throw new Error(`${url} ${reason}`);
+  }
+  return { status: response.status, headers: response.headers, body: await response.text() };
 }
 
 /** Follows a blob redirect to storage, forwarding only `accept` so the token stays here. */
-async function getFollowing(
-  url: string,
-  headers: http.OutgoingHttpHeaders,
-  timeoutMs: number
-): Promise<Response> {
+async function getFollowing(url: string, headers: Headers, timeoutMs: number): Promise<Answer> {
   let response = await get(url, headers, timeoutMs);
   // Each redirect in turn, up to a bound that keeps a redirect cycle finite.
   for (let hop = 0; hop < 5 && response.status >= 300 && response.status < 400; hop++) {
-    const location = response.headers.location;
+    const location = response.headers.get("location");
     if (!location) {
       break;
     }
@@ -169,7 +167,7 @@ export async function fetchCollection(ref: string, timeoutMs = 15000): Promise<P
   let manifest = await get(`${base}/manifests/latest`, { accept: MANIFEST_ACCEPT }, timeoutMs);
   let token: string | undefined;
   if (manifest.status === 401) {
-    const challenge = manifest.headers["www-authenticate"];
+    const challenge = manifest.headers.get("www-authenticate");
     if (!challenge) {
       throw new Error(`${ref}: the registry refused the pull without saying how to authenticate`);
     }
