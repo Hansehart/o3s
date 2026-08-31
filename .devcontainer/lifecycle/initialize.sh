@@ -5,10 +5,11 @@
 #
 # DESCRIPTION
 #        Seeds each editable config file from its template, creates this host's egress-proxy
-#        CA and secret slots, and regenerates the values compose reads at create time.
+#        CA and secret slots, registers the cage's confinement profile with this host's
+#        kernel, and regenerates the values compose reads at create time.
 #
 # SEE ALSO
-#        devcontainer.json, gen-ca.sh, post-start.sh
+#        apparmor.conf, devcontainer.json, gen-ca.sh, post-start.sh
 
 set -euo pipefail
 
@@ -16,6 +17,7 @@ log() { echo "[o3s] INFO: $*"; }
 
 ENV_FILE=.devcontainer/.env
 CONFIG_FILE=.devcontainer/config.toml
+PROFILE_FILE=.devcontainer/apparmor.conf
 
 # Seed each editable config file from its template if missing
 [ -f "$CONFIG_FILE" ]                   || cp .devcontainer/templates/config.toml "$CONFIG_FILE"
@@ -29,11 +31,10 @@ install -d -m 700 "$SECRETS_DIR"
 bash .devcontainer/proxy/gen-ca.sh
 
 # Load the cage's confinement profile where this host's kernel enforces AppArmor
-PROFILE=.devcontainer/apparmor.conf
-if [ -f "$PROFILE" ] && aa-enabled --quiet 2>/dev/null; then
-  log "locking down the cage's processes from the host kernel, which requires root"
-  sudo apparmor_parser -r -T -W "$PROFILE" 2>/dev/null \
-    || log "load this host's confinement profile: sudo apparmor_parser -r $PROFILE"
+if [ -f "$PROFILE_FILE" ] && aa-enabled --quiet 2>/dev/null; then
+  sudo apparmor_parser -r -T -W "$PROFILE_FILE" 2>/dev/null \
+    && log "loaded the cage's confinement profile" \
+    || log "load this host's confinement profile: sudo apparmor_parser -r $PROFILE_FILE"
 fi
 
 # Seed the real-token file from its template

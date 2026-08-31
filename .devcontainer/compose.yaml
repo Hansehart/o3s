@@ -12,7 +12,7 @@
 #        Dev Containers extension, command "Dev Containers: Rebuild and Reopen in Container".
 #
 # SEE ALSO
-#        devcontainer.json, config.toml
+#        apparmor.conf, config.toml, devcontainer.json
 
 # Stack name
 name: o3s
@@ -65,7 +65,7 @@ services:
     # The device the userspace network stack builds its tap on
     devices:
       - /dev/net/tun
-    # The namespaces and mounts the daemon creates, over a procfs left open enough to mount
+    # Its own profile and syscall filter, over a procfs left open enough to mount
     security_opt:
       - apparmor=o3s-cage
       - seccomp=./seccomp.json
