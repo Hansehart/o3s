@@ -2,16 +2,15 @@
 //        features.json — the feature sources the o3s sidebar builds its catalog from
 //
 // DESCRIPTION
-//        Two lists, and nothing else. `collections` names the OCI namespaces to read;
-//        each publishes a devcontainer-collection.json holding every feature's name,
-//        description, version and option schema, so none of that is repeated here and
-//        none of it can drift. `overrides` carries the option values o3s wants that the
-//        feature does not already default to — a value equal to the feature's own
-//        default is left out, and inherited instead.
+//        Two lists. `collections` names the OCI namespaces to read; each publishes a
+//        devcontainer-collection.json holding every feature's name, description,
+//        version and option schema, which the sidebar reads from the registry.
+//        `overrides` carries the option values o3s sets over a feature's own defaults,
+//        so an entry here states a deliberate difference and the rest is inherited.
 //
-//        Overrides are keyed by the ref without a version, because the same feature id
+//        Overrides are keyed by the ref without a version, since the same feature id
 //        is published by more than one collection. The version tag a generated
-//        devcontainer.json carries is the published major, never a number stated here.
+//        devcontainer.json carries is the published major.
 //
 // SEE ALSO
 //        devcontainer.json
@@ -29,8 +28,7 @@
         "ghcr.io/hansehart/devcontainer-features/codex": {
             "stateDir": "/home/ubuntu/features/codex"
         },
-        // The inner daemon does not inherit the cage's resolver, so it is pointed at the
-        // gateway by hand. The dev overlay moves the gateway to 10.11.0.2.
+        // The inner daemon keeps its own resolver, so it is pointed at the gateway by hand.
         "ghcr.io/hansehart/devcontainer-features/docker-in-docker": {
             "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}"
         },
