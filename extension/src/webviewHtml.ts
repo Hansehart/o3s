@@ -15,7 +15,7 @@ export interface WebviewAssets {
 export interface FeaturesModel {
   catalog: Catalog;
   collections: string[];
-  /** Keyed by `CatalogEntry.base`; the values a generated devcontainer.json already holds. */
+  /** Keyed by `CatalogEntry.base`; the values devcontainer.json already holds. */
   selected: Map<string, Record<string, OptionValue>>;
 }
 
@@ -55,11 +55,19 @@ const providerName = (collection: string): string => {
 /**
  * One control per published option, chosen by the declared shape: an `enum` becomes a
  * closed list, while `proposals` become suggestions on a field that stays typeable.
+ * `value` is what the control shows; `seed` is what Reset puts back, and the two differ
+ * exactly when devcontainer.json states something other than the published default.
  */
-function optionHtml(base: string, name: string, option: FeatureOption, value: OptionValue): string {
+function optionHtml(
+  base: string,
+  name: string,
+  option: FeatureOption,
+  value: OptionValue,
+  seed: OptionValue
+): string {
   const id = `${base}::${name}`;
-  const seed = String(value);
-  const shared = `data-option="${escapeHtml(name)}" data-seed="${escapeHtml(seed)}"`;
+  const shown = String(value);
+  const shared = `data-option="${escapeHtml(name)}" data-seed="${escapeHtml(String(seed))}"`;
 
   let control: string;
   if (option.type === "boolean") {
@@ -72,10 +80,10 @@ function optionHtml(base: string, name: string, option: FeatureOption, value: Op
   } else if (option.proposals) {
     const list = `${id}::list`;
     const choices = option.proposals.map((c) => `<option value="${escapeHtml(c)}">`).join("");
-    control = `<input type="text" list="${escapeHtml(list)}" ${shared} value="${escapeHtml(seed)}">
+    control = `<input type="text" list="${escapeHtml(list)}" ${shared} value="${escapeHtml(shown)}">
         <datalist id="${escapeHtml(list)}">${choices}</datalist>`;
   } else {
-    control = `<input type="text" ${shared} value="${escapeHtml(seed)}">`;
+    control = `<input type="text" ${shared} value="${escapeHtml(shown)}">`;
   }
 
   const description = option.description
@@ -91,7 +99,9 @@ function optionHtml(base: string, name: string, option: FeatureOption, value: Op
 
 function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | undefined): string {
   const on = chosen !== undefined;
-  const values = { ...entry.values, ...(chosen ?? {}) };
+  // The published defaults under what the file states: one seed layer, so a control cannot
+  // show a value the file does not hold.
+  const values = { ...entry.defaults, ...(chosen ?? {}) };
 
   const security = entry.security.length
     ? `<ul class="security">${entry.security.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>`
@@ -107,9 +117,11 @@ function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | und
       }</span>`
     : "";
 
-  // Each published option, seeded with the value in force for it.
+  // Each published option, showing the value in force and resetting to the published default.
   const options = Object.entries(entry.options)
-    .map(([name, option]) => optionHtml(entry.base, name, option, values[name] ?? ""))
+    .map(([name, option]) =>
+      optionHtml(entry.base, name, option, values[name] ?? "", entry.defaults[name] ?? "")
+    )
     .join("\n");
 
   return `<div class="feature-card${on ? " on" : ""}" data-base="${escapeHtml(entry.base)}" data-collection="${escapeHtml(entry.collection)}">
@@ -128,7 +140,7 @@ function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | und
       </div>
       <div class="feature-options">
 ${options}
-        <button type="button" class="reset">Reset to o3s defaults</button>
+        <button type="button" class="reset">Reset to defaults</button>
       </div>
     </div>`;
 }

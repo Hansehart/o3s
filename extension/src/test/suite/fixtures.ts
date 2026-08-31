@@ -3,17 +3,17 @@ import * as os from "os";
 import * as path from "path";
 import { PublishedFeature } from "../../registry";
 import { Catalog, buildCatalog } from "../../catalog";
-import { templatePath } from "../../devcontainerGenerator";
 
 /**
- * A throwaway checkout carrying the named templates, which is what the suites work in.
- * Passing nothing gives a folder that is deliberately not an o3s checkout.
+ * A throwaway checkout carrying the named files, each path relative to `.devcontainer`.
+ * Passing nothing gives a folder that is deliberately not a devcontainer checkout.
  */
-export function tempCheckout(templates: Record<string, string> = {}): string {
+export function tempCheckout(files: Record<string, string> = {}): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-"));
-  for (const [name, contents] of Object.entries(templates)) {
-    fs.mkdirSync(path.dirname(templatePath(root, name)), { recursive: true });
-    fs.writeFileSync(templatePath(root, name), contents, "utf8");
+  for (const [name, contents] of Object.entries(files)) {
+    const file = path.join(root, ".devcontainer", name);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, contents, "utf8");
   }
   return root;
 }
@@ -72,13 +72,8 @@ export const PUBLISHED: Record<string, PublishedFeature[]> = {
   ],
 };
 
-/** The o3s values that are not the feature's own, exactly as the sources file carries them. */
-export const OVERRIDES = {
-  [CLAUDE]: { stateDir: "/home/ubuntu/features/claude", disableNonessentialTraffic: true },
-};
-
 export const CATALOG: Catalog = buildCatalog(
-  { collections: [OURS, THEIRS], overrides: OVERRIDES },
+  [OURS, THEIRS],
   new Map(Object.entries(PUBLISHED))
 );
 

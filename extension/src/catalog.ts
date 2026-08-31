@@ -1,21 +1,12 @@
-import * as fs from "fs";
-import { applyEdits, modify, parse as parseJsonc } from "jsonc-parser";
-import { FeatureOption, PublishedFeature, majorOf, parseCollectionRef } from "./registry";
-import { SOURCES_FILE, readJsonc, templatePath } from "./devcontainerGenerator";
+import { FeatureOption, PublishedFeature, majorOf } from "./registry";
 
 export type OptionValue = string | boolean;
 
-/** What `templates/features.json` states: the collections to read and the values o3s insists on. */
-export interface Sources {
-  collections: string[];
-  overrides: Record<string, Record<string, OptionValue>>;
-}
-
 /** One feature as the sidebar renders it, with every field taken from the registry. */
 export interface CatalogEntry {
-  /** The feature ref without a version, which is how an override and a selection key it. */
+  /** The feature ref without a version, which is how a selection keys it. */
   base: string;
-  /** The ref a generated devcontainer.json carries, pinned to the published major. */
+  /** The ref devcontainer.json carries, pinned to the published major. */
   ref: string;
   collection: string;
   label: string;
@@ -30,42 +21,17 @@ export interface CatalogEntry {
   dependsOn: string[];
   legacyIds: string[];
   options: Record<string, FeatureOption>;
-  /** The published defaults, which decide what is worth writing out. */
+  /**
+   * The published defaults. The only seed there is: what a control starts at when the file
+   * states nothing, what it resets to, and what a value is compared against before being
+   * written. One layer, so what the sidebar shows and what the file holds cannot drift.
+   */
   defaults: Record<string, OptionValue>;
-  /** The published defaults under the o3s overrides: what a control is seeded and reset to. */
-  values: Record<string, OptionValue>;
 }
 
 export type Catalog = CatalogEntry[];
 
-const asSources = (parsed: Partial<Sources> | undefined): Sources => ({
-  collections: parsed?.collections ?? [],
-  overrides: parsed?.overrides ?? {},
-});
-
-export function loadSources(root: string): Sources {
-  return asSources(readJsonc<Partial<Sources> | undefined>(templatePath(root, SOURCES_FILE)));
-}
-
-/** Appends a collection as a surgical edit, keeping the file's comments and formatting. */
-export function addCollection(root: string, ref: string): void {
-  const { resource } = parseCollectionRef(ref);
-  const file = templatePath(root, SOURCES_FILE);
-
-  // Read once, so the list that is checked is the one the edit is applied to.
-  const contents = fs.readFileSync(file, "utf8");
-  const { collections } = asSources(parseJsonc(contents));
-  if (collections.includes(resource)) {
-    return;
-  }
-
-  const edits = modify(contents, ["collections", collections.length], resource, {
-    formattingOptions: { insertSpaces: true, tabSize: 4 },
-  });
-  fs.writeFileSync(file, applyEdits(contents, edits), "utf8");
-}
-
-/** The value each option falls back to when a generated devcontainer.json states nothing. */
+/** The value each option falls back to when devcontainer.json states nothing for it. */
 const defaultsOf = (options: Record<string, FeatureOption>): Record<string, OptionValue> =>
   Object.fromEntries(
     Object.entries(options)
@@ -85,7 +51,6 @@ function securityNotesOf(feature: PublishedFeature): string[] {
 function toEntry(
   collection: string,
   feature: PublishedFeature,
-  overrides: Record<string, OptionValue>,
   warn: (message: string) => void
 ): CatalogEntry | undefined {
   const base = `${collection}/${feature.id}`;
@@ -94,23 +59,12 @@ function toEntry(
   try {
     major = majorOf(feature.version);
   } catch {
-    // An entry needs a published major, since that is the tag a devcontainer.json pins to.
+    // An entry needs a published major, since that is the tag devcontainer.json pins to.
     warn(`${base} publishes version '${feature.version}', which names no major to pin to`);
     return undefined;
   }
 
   const options = feature.options ?? {};
-  const applicable: Record<string, OptionValue> = {};
-  // Each override, kept where the feature publishes a matching option and reported otherwise.
-  for (const [name, value] of Object.entries(overrides)) {
-    if (name in options) {
-      applicable[name] = value;
-    } else {
-      warn(`${base} publishes no option '${name}', so that override applies to nothing`);
-    }
-  }
-
-  const defaults = defaultsOf(options);
   return {
     base,
     ref: `${base}:${major}`,
@@ -126,26 +80,20 @@ function toEntry(
     dependsOn: Object.keys(feature.dependsOn ?? {}),
     legacyIds: feature.legacyIds ?? [],
     options,
-    defaults,
-    values: { ...defaults, ...applicable },
+    defaults: defaultsOf(options),
   };
 }
 
-/** Merges the published features into the sidebar's list, in the order the sources name them. */
+/** Merges the published features into the sidebar's list, in the order the providers are named. */
 export function buildCatalog(
-  sources: Sources,
+  collections: string[],
   fetched: Map<string, PublishedFeature[]>,
   warn: (message: string) => void = () => {}
 ): Catalog {
   // Each collection that resolved, contributing the features it published.
-  const entries = sources.collections.flatMap((collection) =>
+  const entries = collections.flatMap((collection) =>
     (fetched.get(collection) ?? []).flatMap((feature) => {
-      const entry = toEntry(
-        collection,
-        feature,
-        sources.overrides[`${collection}/${feature.id}`] ?? {},
-        warn
-      );
+      const entry = toEntry(collection, feature, warn);
       return entry ? [entry] : [];
     })
   );

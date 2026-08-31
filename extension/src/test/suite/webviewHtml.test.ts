@@ -7,7 +7,26 @@ import { WebviewAssets, featuresHtml, openProjectHtml } from "../../webviewHtml"
 import { CATALOG, CLAUDE, DIND, GITHUB, OURS, THEIRS, entryFor } from "./fixtures";
 import { themeCss } from "./theme";
 
-const CHROME = "chrome-headless-shell";
+/**
+ * The headless browser the harness drives. A contributor gets `chrome-headless-shell` from
+ * `@puppeteer/browsers`; a CI runner ships `google-chrome` instead. Both answer `--dump-dom`
+ * the same way, so whichever is on PATH will do.
+ */
+const CHROME_CANDIDATES = ["chrome-headless-shell", "google-chrome", "chromium", "chromium-browser"];
+
+function chromeBinary(): string {
+  const dirs = (process.env.PATH ?? "").split(path.delimiter);
+  for (const candidate of CHROME_CANDIDATES) {
+    const found = dirs
+      .map((dir) => path.join(dir, candidate))
+      .find((binary) => fs.existsSync(binary));
+    if (found) {
+      return found;
+    }
+  }
+  throw new Error(`no headless browser on PATH; tried ${CHROME_CANDIDATES.join(", ")}`);
+}
+
 const MEDIA = path.resolve(__dirname, "..", "..", "..", "media");
 
 const ASSETS: WebviewAssets = {
@@ -62,8 +81,8 @@ function render(html: string, driver: string): string {
     const file = path.join(dir, "page.html");
     fs.writeFileSync(file, rendered, "utf8");
     return execFileSync(
-      CHROME,
-      ["--no-sandbox", "--disable-gpu", "--dump-dom", `file://${file}`],
+      chromeBinary(),
+      ["--headless", "--no-sandbox", "--disable-gpu", "--dump-dom", `file://${file}`],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     );
   } finally {
@@ -160,14 +179,14 @@ suite("webviewHtml: option controls", () => {
     assert.strictEqual(probe(dom, "type"), "text");
   });
 
-  test("an o3s override seeds the control instead of the feature's default", () => {
+  test("a control starts at the feature's published default", () => {
     const dom = render(
       page(),
       `report("stateDir", ${control(CLAUDE, "stateDir")}.value);
        report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
     );
-    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
-    assert.strictEqual(probe(dom, "traffic"), "true");
+    assert.strictEqual(probe(dom, "stateDir"), "");
+    assert.strictEqual(probe(dom, "traffic"), "false");
   });
 
   test("a value already in devcontainer.json wins over the seed", () => {
@@ -186,17 +205,28 @@ suite("webviewHtml: option controls", () => {
     assert.strictEqual(probe(dom, "desc"), "Where state is kept.");
   });
 
-  test("reset puts the o3s values back after an edit", () => {
+  test("reset puts the published defaults back after an edit", () => {
     const dom = render(
       page(),
       `${control(CLAUDE, "stateDir")}.value = "/scratch";
-       ${control(CLAUDE, "disableNonessentialTraffic")}.checked = false;
+       ${control(CLAUDE, "disableNonessentialTraffic")}.checked = true;
        card("${CLAUDE}").querySelector(".reset").click();
        report("stateDir", ${control(CLAUDE, "stateDir")}.value);
        report("traffic", ${control(CLAUDE, "disableNonessentialTraffic")}.checked);`
     );
-    assert.strictEqual(probe(dom, "stateDir"), "/home/ubuntu/features/claude");
-    assert.strictEqual(probe(dom, "traffic"), "true");
+    assert.strictEqual(probe(dom, "stateDir"), "");
+    assert.strictEqual(probe(dom, "traffic"), "false");
+  });
+
+  test("reset on a selected card returns to the default, not to what the file holds", () => {
+    // The seed a control resets to is the feature's own default. Seeding it from the value
+    // being rendered would make Reset restore whatever devcontainer.json happened to state.
+    const dom = render(
+      page({ [CLAUDE]: { stateDir: "/elsewhere" } }),
+      `card("${CLAUDE}").querySelector(".reset").click();
+       report("stateDir", ${control(CLAUDE, "stateDir")}.value);`
+    );
+    assert.strictEqual(probe(dom, "stateDir"), "");
   });
 });
 
@@ -272,7 +302,7 @@ suite("webviewHtml: generating", () => {
             values: {
               version: "latest",
               stateDir: "/custom",
-              disableNonessentialTraffic: true,
+              disableNonessentialTraffic: false,
             },
           },
         ],
