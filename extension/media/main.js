@@ -14,26 +14,40 @@
     vscode.postMessage({ type: "refresh" });
   });
 
-  const selected = document.getElementById("selected");
-  const browse = document.getElementById("browse");
+  // The two lists the features page carries; the notice and welcome pages have neither,
+  // and nothing below them applies to those.
+  const selected = /** @type {HTMLElement} */ (document.getElementById("selected"));
+  const browse = /** @type {HTMLElement} */ (document.getElementById("browse"));
   if (!selected || !browse) {
     return;
   }
 
   const cards = () => /** @type {HTMLElement[]} */ (Array.from(document.querySelectorAll(".feature-card")));
-  const toggleOf = (card) => /** @type {HTMLInputElement} */ (card.querySelector("input.toggle"));
-  const controlsOf = (card) =>
+
+  /** The card an event landed in, which every control and button sits inside. */
+  const cardOf = (/** @type {HTMLElement} */ target) =>
+    /** @type {HTMLElement} */ (target.closest(".feature-card"));
+
+  const toggleOf = (/** @type {HTMLElement} */ card) =>
+    /** @type {HTMLInputElement} */ (card.querySelector("input.toggle"));
+
+  const controlsOf = (/** @type {HTMLElement} */ card) =>
     /** @type {(HTMLInputElement|HTMLSelectElement)[]} */ (
       Array.from(card.querySelectorAll("[data-option]"))
     );
 
-  /** A checkbox carries its value in `checked`, every other control in `value`. */
+  /**
+   * A checkbox carries its value in `checked`, every other control in `value`.
+   * @param {HTMLInputElement|HTMLSelectElement} control
+   * @returns {control is HTMLInputElement}
+   */
   const isCheckbox = (control) =>
     control instanceof HTMLInputElement && control.type === "checkbox";
 
-  const valueOf = (control) => (isCheckbox(control) ? control.checked : control.value);
+  const valueOf = (/** @type {HTMLInputElement|HTMLSelectElement} */ control) =>
+    isCheckbox(control) ? control.checked : control.value;
 
-  const seedControl = (control) => {
+  const seedControl = (/** @type {HTMLInputElement|HTMLSelectElement} */ control) => {
     const seed = control.dataset.seed ?? "";
     if (isCheckbox(control)) {
       control.checked = seed === "true";
@@ -63,7 +77,7 @@
   }
 
   /** Moves a card into the list its toggle names, where the selection stays visible throughout. */
-  function place(card) {
+  function place(/** @type {HTMLElement} */ card) {
     const on = toggleOf(card).checked;
     card.classList.toggle("on", on);
     (on ? selected : browse).appendChild(card);
@@ -74,7 +88,7 @@
   document.addEventListener("change", (event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.classList.contains("toggle")) {
-      place(target.closest(".feature-card"));
+      place(cardOf(target));
       updateCount();
     }
   });
@@ -96,7 +110,7 @@
 
     if (target.classList.contains("reset")) {
       // Each control back to the seed the extension rendered it with, which is the o3s default.
-      controlsOf(target.closest(".feature-card")).forEach(seedControl);
+      controlsOf(cardOf(target)).forEach(seedControl);
     }
   });
 

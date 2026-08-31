@@ -1,0 +1,15 @@
+// media/ runs in the webview, not in Node, so it is checked on its own: browser
+// libs instead of node types, and no emit, since the scripts ship as they are.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    // Only what the files reference, so a stray @types package cannot supply a global.
+    "types": []
+  },
+  "include": ["media/**/*.js"]
+}

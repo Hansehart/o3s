@@ -78,8 +78,9 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint",
-    "pretest": "npm run compile",
+    "check:media": "tsc -p tsconfig.media.json",
+    "lint": "eslint && npm run check:media",
+    "pretest": "npm run compile && npm run check:media",
     "test": "vscode-test"
   },
   "devDependencies": {

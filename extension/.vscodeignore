@@ -3,5 +3,5 @@
 src/**
 out/test/**
 .gitignore
-tsconfig.json
+tsconfig*.json
 **/*.map
