@@ -16,10 +16,7 @@
   ],
   "main": "./out/extension.js",
   "extensionKind": [
-    "ui"
-  ],
-  "extensionDependencies": [
-    "ms-vscode-remote.remote-containers"
+    "workspace"
   ],
   "contributes": {
     "commands": [
@@ -52,7 +49,7 @@
           "id": "o3s.mainView",
           "name": "o3s",
           "type": "webview",
-          "when": "remoteName == ''"
+          "when": "remoteName != 'dev-container'"
         }
       ]
     },
@@ -60,15 +57,15 @@
       "commandPalette": [
         {
           "command": "o3s.generateDevcontainer",
-          "when": "remoteName == ''"
+          "when": "remoteName != 'dev-container'"
         },
         {
           "command": "o3s.cloneAndSetup",
-          "when": "remoteName == ''"
+          "when": "remoteName != 'dev-container'"
         },
         {
           "command": "o3s.refreshCatalog",
-          "when": "remoteName == ''"
+          "when": "remoteName != 'dev-container'"
         }
       ],
       "view/title": [
