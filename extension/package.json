@@ -41,15 +41,18 @@
     "commands": [
       {
         "command": "o3s.generateDevcontainer",
-        "title": "o3s: Generate devcontainer.json"
+        "title": "Open the Feature Store",
+        "category": "o3s"
       },
       {
         "command": "o3s.cloneAndSetup",
-        "title": "o3s: Clone and Set Up"
+        "title": "Clone o3s",
+        "category": "o3s"
       },
       {
         "command": "o3s.refreshCatalog",
-        "title": "o3s: Refresh Feature Catalog",
+        "title": "Refresh Feature Catalog",
+        "category": "o3s",
         "icon": "$(refresh)"
       }
     ],
