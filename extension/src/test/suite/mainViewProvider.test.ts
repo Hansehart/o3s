@@ -26,9 +26,8 @@ interface FakeView {
 }
 
 /**
- * The parts of a WebviewView the provider actually touches. The message handler is
- * captured rather than delivered through a real webview, so a test drives `onMessage`
- * directly instead of round-tripping through a DOM.
+ * The parts of a WebviewView the provider touches. Capturing the message handler lets a
+ * test drive `onMessage` directly.
  */
 function fakeView(): FakeView {
   let handler: ((message: unknown) => Promise<void>) | undefined;

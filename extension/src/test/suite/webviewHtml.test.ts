@@ -7,11 +7,7 @@ import { WebviewAssets, featuresHtml, openProjectHtml } from "../../webviewHtml"
 import { CATALOG, CLAUDE, DIND, GITHUB, OURS, THEIRS, entryFor } from "./fixtures";
 import { themeCss } from "./theme";
 
-/**
- * The headless browser the harness drives. A contributor gets `chrome-headless-shell` from
- * `@puppeteer/browsers`; a CI runner ships `google-chrome` instead. Both answer `--dump-dom`
- * the same way, so whichever is on PATH will do.
- */
+/** The headless browsers that answer `--dump-dom`, in the order the harness looks for them. */
 const CHROME_CANDIDATES = ["chrome-headless-shell", "google-chrome", "chromium", "chromium-browser"];
 
 function chromeBinary(): string {
@@ -57,25 +53,24 @@ const VSCODE_API_STUB = `
   const card = (base) => document.querySelector('[data-base="' + base + '"]');
 `;
 
-/**
- * Renders a page in headless Chrome, runs `driver` in it, and returns the DOM; the driver
- * reports through `report(name, value)`, read back out of `data-probe`. The stub sits in
- * `<head>` to precede the page's script, and the theme is linked so `style-src` covers it.
- */
+/** Renders a page in headless Chrome, runs `driver` in it, and returns the DOM. */
 function render(html: string, driver: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-webview-"));
   try {
-    // From the CSP rather than a script tag, since a page need not carry a script.
+    // From the CSP, which every page carries whether or not it has a script.
     const nonce = /'nonce-([^']+)'/.exec(html)?.[1] ?? "";
     const theme = path.join(dir, "theme.css");
     fs.writeFileSync(theme, themeCss(), "utf8");
 
+    // The stub sits in `<head>` to precede the page's script; the theme is linked from
+    // there too, so `style-src` covers it.
     const rendered = html
       .replace(
         "</head>",
         `<link href="file://${theme}" rel="stylesheet">
          <script nonce="${nonce}">${VSCODE_API_STUB}</script></head>`
       )
+      // The driver runs last, once the page has wired itself up.
       .replace("</body>", `<script nonce="${nonce}">${driver}</script></body>`);
 
     const file = path.join(dir, "page.html");
@@ -219,8 +214,7 @@ suite("webviewHtml: option controls", () => {
   });
 
   test("reset on a selected card returns to the default, not to what the file holds", () => {
-    // The seed a control resets to is the feature's own default. Seeding it from the value
-    // being rendered would make Reset restore whatever devcontainer.json happened to state.
+    // The seed a control resets to is the feature's own default, whatever the file states.
     const dom = render(
       page({ [CLAUDE]: { stateDir: "/elsewhere" } }),
       `card("${CLAUDE}").querySelector(".reset").click();

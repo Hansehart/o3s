@@ -1,8 +1,8 @@
 //@ts-check
 /// <reference types="vscode-webview" />
 
-// Runs inside the webview, talking to the extension over postMessage. It backs every
-// page, wiring whichever controls the page carries.
+// Runs inside the webview, talking to the extension over postMessage, and wires
+// whichever controls the page it backs carries.
 (function () {
   const vscode = acquireVsCodeApi();
 
@@ -14,8 +14,7 @@
     vscode.postMessage({ type: "refresh" });
   });
 
-  // The two lists the features page carries; the notice and welcome pages have neither,
-  // and nothing below them applies to those.
+  // The two lists the features page carries, which everything below wires.
   const selected = /** @type {HTMLElement} */ (document.getElementById("selected"));
   const browse = /** @type {HTMLElement} */ (document.getElementById("browse"));
   if (!selected || !browse) {
@@ -109,7 +108,7 @@
     }
 
     if (target.classList.contains("reset")) {
-      // Each control back to the seed the extension rendered it with, which is the o3s default.
+      // Each control back to the seed the extension rendered it with.
       controlsOf(cardOf(target)).forEach(seedControl);
     }
   });

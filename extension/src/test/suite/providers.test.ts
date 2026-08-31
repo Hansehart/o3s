@@ -34,7 +34,7 @@ suite("providers", () => {
   });
 
   teardown(async () => {
-    // Back to what package.json declares, so one test cannot seed the next.
+    // Back to what package.json declares, so each test starts from the same setting.
     await setProviders(undefined);
     removeCheckout(root);
   });

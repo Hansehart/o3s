@@ -63,15 +63,13 @@ export function parseCollectionRef(input: string): CollectionRef {
   return { scheme: schemeFor(registry), registry, namespace, resource: `${registry}/${namespace}` };
 }
 
-/**
- * Drops a `:tag` or `@digest`, leaving the ref that identifies a feature across versions.
- * The last colon counts only when it follows the last slash, so a registry port survives.
- */
+/** Drops a `:tag` or `@digest`, leaving the ref that identifies a feature across versions. */
 export function stripVersion(ref: string): string {
   const at = ref.lastIndexOf("@");
   if (at !== -1) {
     return ref.slice(0, at);
   }
+  // The last colon counts once it follows the last slash, so a registry port survives.
   const colon = ref.lastIndexOf(":");
   return colon > ref.lastIndexOf("/") ? ref.slice(0, colon) : ref;
 }
@@ -93,7 +91,7 @@ interface Answer {
   body: string;
 }
 
-/** One request, read to the end. Redirects stay unfollowed so a caller decides what to forward. */
+/** One request, read to the end, leaving each redirect for the caller to act on. */
 async function get(url: string, headers: Headers, timeoutMs: number): Promise<Answer> {
   let response: globalThis.Response;
   try {
@@ -103,7 +101,7 @@ async function get(url: string, headers: Headers, timeoutMs: number): Promise<An
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    // A timeout aborts as a bare `TimeoutError`, which names neither the request nor the bound.
+    // A timeout aborts as a bare `TimeoutError`, so the message states the request and bound.
     const reason = error instanceof Error && error.name === "TimeoutError"
       ? `did not answer within ${timeoutMs}ms`
       : `could not be reached (${error instanceof Error ? error.message : String(error)})`;
@@ -156,10 +154,7 @@ const MANIFEST_ACCEPT = [
   "application/vnd.docker.distribution.manifest.v2+json",
 ].join(", ");
 
-/**
- * Every feature the collection at `ref` publishes, over an anonymous pull. `features
- * publish` pushes one artifact per collection whose single layer holds the metadata.
- */
+/** Every feature the collection at `ref` publishes, over an anonymous pull. */
 export async function fetchCollection(ref: string, timeoutMs = 15000): Promise<PublishedFeature[]> {
   const { scheme, registry, namespace } = parseCollectionRef(ref);
   const base = `${scheme}://${registry}/v2/${namespace}`;
@@ -182,10 +177,11 @@ export async function fetchCollection(ref: string, timeoutMs = 15000): Promise<P
     throw new Error(`${ref}: the registry answered ${manifest.status} for its manifest`);
   }
 
+  // `features publish` pushes one artifact per collection, whose single layer holds the
+  // metadata; that layer is what marks the artifact as a feature collection.
   const layers: { mediaType?: string; digest?: string }[] = JSON.parse(manifest.body).layers ?? [];
   const digest = layers.find((layer) => layer.mediaType === COLLECTION_MEDIA_TYPE)?.digest;
   if (!digest) {
-    // The collection layer is what marks this artifact as a feature collection.
     throw new Error(`${ref} publishes no devcontainer collection`);
   }
 

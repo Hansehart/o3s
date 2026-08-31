@@ -4,10 +4,7 @@ import * as path from "path";
 import { PublishedFeature } from "../../registry";
 import { Catalog, buildCatalog } from "../../catalog";
 
-/**
- * A throwaway checkout carrying the named files, each path relative to `.devcontainer`.
- * Passing nothing gives a folder that is deliberately not a devcontainer checkout.
- */
+/** A throwaway checkout carrying the named files, each path relative to `.devcontainer`. */
 export function tempCheckout(files: Record<string, string> = {}): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "o3s-"));
   for (const [name, contents] of Object.entries(files)) {

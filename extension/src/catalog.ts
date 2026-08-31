@@ -21,11 +21,7 @@ export interface CatalogEntry {
   dependsOn: string[];
   legacyIds: string[];
   options: Record<string, FeatureOption>;
-  /**
-   * The published defaults. The only seed there is: what a control starts at when the file
-   * states nothing, what it resets to, and what a value is compared against before being
-   * written. One layer, so what the sidebar shows and what the file holds cannot drift.
-   */
+  /** The published defaults: what a control starts at, resets to, and is written against. */
   defaults: Record<string, OptionValue>;
 }
 
@@ -98,6 +94,6 @@ export function buildCatalog(
     })
   );
 
-  // A stable partition rather than a sort, so each collection keeps its published order.
+  // A stable partition, so each collection keeps its published order.
   return [...entries.filter((e) => !e.deprecated), ...entries.filter((e) => e.deprecated)];
 }

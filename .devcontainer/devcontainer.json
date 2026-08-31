@@ -33,8 +33,7 @@
             "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}",
             "version": "latest"
         }
-        // Parked, and the state directories each one wants. The sidebar edits an entry in
-        // place, so a note kept out here beside them rather than inside one survives a write.
+        // Parked, with the state directory each one wants. A write edits entries in place.
         // "ghcr.io/devcontainers/features/github-cli:1": {},
         // "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {},
         // "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},

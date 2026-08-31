@@ -19,12 +19,9 @@ export interface FeaturesModel {
   selected: Map<string, Record<string, OptionValue>>;
 }
 
-/**
- * The shell every page shares: nonce, stylesheet, script and baseline policy. Hyphens
- * are legal in a `nonce-` source expression, so a UUID serves directly, and `extraCsp`
- * grants each page exactly the directives it uses.
- */
+/** The shell every page shares, with `extraCsp` granting a page the directives it uses. */
 function page(assets: WebviewAssets, bodyClass: string, body: string, extraCsp = ""): string {
+  // Hyphens are legal in a `nonce-` source expression, so a UUID serves directly.
   const nonce = randomUUID();
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -47,17 +44,12 @@ const providerName = (collection: string): string => {
   try {
     return parseCollectionRef(collection).namespace;
   } catch {
-    // A ref the sidebar could not parse still deserves a tab, labelled with what it says.
+    // A ref that resists parsing keeps its tab, labelled with what it states.
     return collection;
   }
 };
 
-/**
- * One control per published option, chosen by the declared shape: an `enum` becomes a
- * closed list, while `proposals` become suggestions on a field that stays typeable.
- * `value` is what the control shows; `seed` is what Reset puts back, and the two differ
- * exactly when devcontainer.json states something other than the published default.
- */
+/** One control per published option: `value` is what it shows, `seed` what Reset puts back. */
 function optionHtml(
   base: string,
   name: string,
@@ -73,11 +65,13 @@ function optionHtml(
   if (option.type === "boolean") {
     control = `<input type="checkbox" ${shared}${value ? " checked" : ""}>`;
   } else if (option.enum) {
+    // A closed set, so a select holds every value the option takes.
     const choices = option.enum
       .map((c) => `<option value="${escapeHtml(c)}"${c === value ? " selected" : ""}>${escapeHtml(c)}</option>`)
       .join("");
     control = `<select ${shared}>${choices}</select>`;
   } else if (option.proposals) {
+    // A hint, so the suggestions sit on a field that stays typeable.
     const list = `${id}::list`;
     const choices = option.proposals.map((c) => `<option value="${escapeHtml(c)}">`).join("");
     control = `<input type="text" list="${escapeHtml(list)}" ${shared} value="${escapeHtml(shown)}">
@@ -99,8 +93,7 @@ function optionHtml(
 
 function cardHtml(entry: CatalogEntry, chosen: Record<string, OptionValue> | undefined): string {
   const on = chosen !== undefined;
-  // The published defaults under what the file states: one seed layer, so a control cannot
-  // show a value the file does not hold.
+  // The published defaults under what the file states, which is what each control shows.
   const values = { ...entry.defaults, ...(chosen ?? {}) };
 
   const security = entry.security.length

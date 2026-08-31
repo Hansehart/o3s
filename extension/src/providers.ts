@@ -3,7 +3,7 @@ import { parseCollectionRef, stripVersion } from "./registry";
 import { devcontainerPath, readJsonc } from "./devcontainerFile";
 import * as fs from "fs";
 
-/** Where the browsable providers are kept: the user's settings, not the checkout. */
+/** Where the browsable providers are kept: the user's settings. */
 export const PROVIDERS_SECTION = "o3s";
 export const PROVIDERS_SETTING = "featureProviders";
 
@@ -24,16 +24,12 @@ function collectionOf(ref: string): string | undefined {
   try {
     return parseCollectionRef(collection).resource;
   } catch {
-    // A local path or a ref too short to carry a namespace is not a provider.
+    // A provider is named by a ref carrying both a registry and a namespace.
     return undefined;
   }
 }
 
-/**
- * The providers this checkout already draws on, read from the file itself. A repo therefore
- * describes its own sources: opening someone else's checkout offers their providers without
- * anyone having to configure them.
- */
+/** The providers this checkout draws on, read from the file, so a repo names its own sources. */
 export function providersInUse(root: string): string[] {
   const file = devcontainerPath(root);
   if (!fs.existsSync(file)) {
@@ -55,7 +51,7 @@ export function allProviders(root: string): string[] {
   return [...new Set([...configuredProviders(), ...providersInUse(root)])];
 }
 
-/** Adds a provider to the settings, refusing a ref that names no collection before it does. */
+/** Adds a provider to the settings, once the ref parses as a collection. */
 export async function addProvider(ref: string): Promise<void> {
   const { resource } = parseCollectionRef(ref);
   const configured = configuredProviders();

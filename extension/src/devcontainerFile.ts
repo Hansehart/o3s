@@ -20,11 +20,7 @@ export const devcontainerPath = (root: string): string =>
 /** What an inserted entry is formatted with, matching the indentation the file carries. */
 const FORMATTING = { formattingOptions: { insertSpaces: true, tabSize: 4 } };
 
-/**
- * A checkout is one the sidebar can work in exactly when it carries the file the sidebar
- * edits. Testing for that rather than a marker beside it keeps one answer to the question,
- * and makes every devcontainer project one the store can serve.
- */
+/** A checkout the sidebar can work in: one carrying the file it edits. */
 export const isProjectRoot = (folderPath: string): boolean =>
   fs.existsSync(devcontainerPath(folderPath));
 
@@ -57,7 +53,7 @@ function entryForRef(catalog: Catalog, ref: string): CatalogEntry | undefined {
   );
 }
 
-/** Keeps the values that differ from the feature's published defaults, which follow the feature. */
+/** The values that differ from the feature's published defaults, which follow the feature. */
 function worthWriting(entry: CatalogEntry, values: Record<string, OptionValue>) {
   return Object.fromEntries(
     Object.entries(values).filter(
@@ -76,10 +72,7 @@ export function loadCurrentSelection(root: string, catalog: Catalog): Selected[]
   });
 }
 
-/**
- * Puts the selection into devcontainer.json as a set of edits rather than a rewrite, so the
- * file's header, its comments and every key the sidebar does not read survive untouched.
- */
+/** Puts the selection into devcontainer.json as edits, so the rest of the file survives. */
 export function writeSelection(root: string, catalog: Catalog, selected: Selected[]): void {
   const file = devcontainerPath(root);
 
@@ -92,9 +85,7 @@ export function writeSelection(root: string, catalog: Catalog, selected: Selecte
     }
   }
 
-  // Only a ref the catalog recognises can be one the user switched off. A ref it does not
-  // is one whose collection could not be read, and a registry that was down is no reason to
-  // delete what it publishes.
+  // A recognised ref follows the selection off; the file keeps every other one it states.
   const removed = Object.keys(writtenFeatures(root)).filter(
     (ref) => !wanted.has(ref) && entryForRef(catalog, ref) !== undefined
   );

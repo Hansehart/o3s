@@ -120,9 +120,8 @@ suite("devcontainerFile: writeSelection", () => {
   });
 
   test("keeps a parked entry sitting beside one it rewrites", () => {
-    // The shape a real checkout carries: a note about a feature nobody has switched on yet,
-    // parked next to the entries that are. Parked *inside* an entry it would not survive,
-    // since rewriting that entry replaces its whole value.
+    // The shape a real checkout carries: a note about a feature, parked in the features
+    // object beside the entries that are on. A write replaces an entry's whole value.
     write(`{
     "features": {
         "${GITHUB}:1": { "version": "2.0" }
@@ -172,8 +171,8 @@ suite("devcontainerFile: writeSelection", () => {
   });
 
   test("a value set back to the published default does not come back on the next read", () => {
-    // The seed the sidebar renders and the value the file omits have to be the same
-    // thing, or a deliberate choice reappears as the option it was changed away from.
+    // The seed the sidebar renders and the value the file omits are the same thing, so a
+    // deliberate choice reads back as itself.
     writeSelection(root, CATALOG, [{ base: CLAUDE, values: { stateDir: "" } }]);
     const [selection] = loadCurrentSelection(root, CATALOG);
     const entry = CATALOG.find((candidate) => candidate.base === CLAUDE);

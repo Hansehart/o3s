@@ -8,7 +8,7 @@ export function activate(context: vscode.ExtensionContext) {
   const log = createLog(context);
 
   log.info(`host: remoteName=${vscode.env.remoteName ?? "none"}`);
-  // Each folder open in the window, which is where the marker search looks.
+  // Each folder open in the window, which is where the checkout search looks.
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
     log.info(`folder: uri=${folder.uri.toString()} fsPath=${folder.uri.fsPath}`);
   }
@@ -22,14 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand("o3s.refreshCatalog", () => provider.refresh()),
     vscode.commands.registerCommand("o3s.cloneAndSetup", () => cloneRepository(log)),
-    // Editing the setting is the other way to add a provider, so it reaches the sidebar too.
+    // A provider added through the settings reaches the sidebar too.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(`${PROVIDERS_SECTION}.${PROVIDERS_SETTING}`)) {
         void provider.refresh();
       }
     }),
-    // Without this the webview is torn down whenever the view is hidden, taking every
-    // toggle the user has not written out yet with it.
+    // Keeps the webview alive while the view is hidden, so a selection outlives a collapse.
     vscode.window.registerWebviewViewProvider("o3s.mainView", provider, {
       webviewOptions: { retainContextWhenHidden: true },
     })

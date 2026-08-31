@@ -24,7 +24,7 @@ type WebviewMessage =
 export class MainViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private root?: string;
-  /** What the last read of the registry returned, so writing does not repeat it. */
+  /** What the last read of the registry returned, which writing reuses. */
   private fetched = new Map<string, PublishedFeature[]>();
 
   constructor(
@@ -85,15 +85,13 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /**
-   * Reads every provider at once - each is an independent walk of manifest, token and blob,
-   * so the wait is the slowest of them rather than their sum. Each is read on its own, so
-   * the sidebar stands on whichever ones resolve.
-   */
+  /** What every provider publishes, keyed by the collection it came from. */
   private async collect(providers: string[]): Promise<Map<string, PublishedFeature[]>> {
+    // All at once: each is an independent walk, so the wait is the slowest of them.
     const read = await Promise.all(
       providers.map(async (collection) => [collection, await this.read(collection)] as const)
     );
+    // The sidebar stands on whichever providers resolved.
     this.fetched = new Map(
       read.flatMap(([collection, features]) => (features ? [[collection, features] as const] : []))
     );
@@ -160,13 +158,12 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
     if (message.type === "addProvider") {
       try {
-        // Written first, then read back along with every other provider, so adding one costs
-        // one walk of the registry rather than two. A ref that does not resolve is kept and
-        // reported rather than undone, leaving the setting the one place to correct it.
         const { resource } = parseCollectionRef(message.ref);
+        // Added first, then read back with the rest, so adding one costs a single walk.
         await addProvider(resource);
         await this.refresh();
 
+        // A ref that stayed unread keeps its place, and the setting is where to correct it.
         if (!this.fetched.has(resource)) {
           vscode.window.showWarningMessage(
             `o3s: added ${resource}, but it could not be read - see the o3s log.`
@@ -179,9 +176,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     }
 
     try {
-      // Rebuilt at write time from what was last read, so writing does not walk every
-      // registry again. A provider added since that read has no cards on screen, so there
-      // is nothing selected from it to write either.
+      // Rebuilt from the last read, which is what the cards on screen were drawn from.
       const catalog = buildCatalog(
         allProviders(root),
         this.fetched,
