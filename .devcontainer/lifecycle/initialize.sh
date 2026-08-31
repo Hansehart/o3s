@@ -21,11 +21,11 @@ CONFIG_FILE=.devcontainer/config.toml
 [ -f "$CONFIG_FILE" ]                   || cp .devcontainer/templates/config.toml "$CONFIG_FILE"
 [ -f .devcontainer/o3s.code-workspace ] || cp .devcontainer/templates/o3s.code-workspace .devcontainer/o3s.code-workspace
 
-# Where this host's secrets live
+# Hold this host's secrets in a directory only this account reads
 SECRETS_DIR="${O3S_SECRETS_DIR:-$HOME/.config/o3s}"
 install -d -m 700 "$SECRETS_DIR"
 
-# This host's egress-proxy CA
+# Generate this host's egress-proxy CA
 bash .devcontainer/proxy/gen-ca.sh
 
 # Seed the real-token file from its template
