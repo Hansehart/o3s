@@ -5,8 +5,8 @@
 #
 # DESCRIPTION
 #        Seeds each editable config file from its template, creates this host's egress-proxy
-#        CA and secret slots, registers the cage's confinement profile with this host's
-#        kernel, and regenerates the values compose reads at create time.
+#        CA and secret slots, installs the cage's confinement profile where this host loads
+#        it at boot, and regenerates the values compose reads at create time.
 #
 # SEE ALSO
 #        apparmor.conf, devcontainer.json, gen-ca.sh, post-start.sh
@@ -18,6 +18,7 @@ log() { echo "[o3s] INFO: $*"; }
 ENV_FILE=.devcontainer/.env
 CONFIG_FILE=.devcontainer/config.toml
 PROFILE_FILE=.devcontainer/apparmor.conf
+INSTALLED_PROFILE=/etc/apparmor.d/o3s-cage
 
 # Seed each editable config file from its template if missing
 [ -f "$CONFIG_FILE" ]                   || cp .devcontainer/templates/config.toml "$CONFIG_FILE"
@@ -30,11 +31,19 @@ install -d -m 700 "$SECRETS_DIR"
 # Generate this host's egress-proxy CA
 bash .devcontainer/proxy/gen-ca.sh
 
-# Load the cage's confinement profile where this host's kernel enforces AppArmor
+# Install the cage's confinement profile where this host's kernel enforces AppArmor
 if [ -f "$PROFILE_FILE" ] && aa-enabled --quiet 2>/dev/null; then
-  sudo apparmor_parser -r -T -W "$PROFILE_FILE" 2>/dev/null \
-    && log "loaded the cage's confinement profile" \
-    || log "load this host's confinement profile: sudo apparmor_parser -r $PROFILE_FILE"
+  # Leave the kernel alone where it already holds the profile this host installed
+  if cmp -s "$PROFILE_FILE" "$INSTALLED_PROFILE"; then
+    log "the cage's confinement profile is loaded"
+  # Load it, then leave it where this host loads it at every boot, asking for privilege once
+  elif sudo sh -c 'apparmor_parser -r -T "$1" && install -m 644 "$1" "$2"' \
+        _ "$PROFILE_FILE" "$INSTALLED_PROFILE"; then
+    log "installed the cage's confinement profile"
+  # Leave the step to whoever holds the privilege this host withheld
+  else
+    log "install this host's confinement profile: sudo apparmor_parser -r $PROFILE_FILE && sudo install -m 644 $PROFILE_FILE $INSTALLED_PROFILE"
+  fi
 fi
 
 # Seed the real-token file from its template
