@@ -9,8 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl \
       git \
       iproute2 \
+      less \
       openssh-client \
       ripgrep \
+      vim \
   && rm -rf /var/lib/apt/lists/*
 
 # TOML/YAML parser
