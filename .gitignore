@@ -1,6 +1,7 @@
 .devcontainer/.env
 .devcontainer/config.toml
 .devcontainer/devcontainer-lock.json
+.devcontainer/devcontainer.json
 .devcontainer/o3s.code-workspace
 *.crt
 *.key
