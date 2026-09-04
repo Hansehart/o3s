@@ -1,15 +1,8 @@
 {
 	"folders": [
 		{
-			"name": ".context",
-			"path": "/home/ubuntu/projects/.context"
-		},
-		{
 			"name": "o3s",
 			"path": "/home/ubuntu/o3s"
 		}
-	],
-	"settings": {
-		"git.repositoryScanMaxDepth": 0
-	}
+	]
 }

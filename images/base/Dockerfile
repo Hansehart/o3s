@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       iproute2 \
       less \
       openssh-client \
-      ripgrep \
       vim \
   && rm -rf /var/lib/apt/lists/*
 
