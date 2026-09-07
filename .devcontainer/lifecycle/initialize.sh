@@ -25,6 +25,7 @@ INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
 profile_is_loaded() {
   local mnt
   while read -r mnt; do
+    # Answer from whichever mount carries the policy, as not all of them do
     compgen -G "$mnt/apparmor/policy/profiles/$PROFILE_NAME.*" > /dev/null && return 0
   done < <(awk '$3 == "securityfs" { print $2 }' /proc/mounts)
   return 1
