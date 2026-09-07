@@ -20,11 +20,12 @@ CONFIG_FILE=.devcontainer/config.toml
 PROFILE_FILE=.devcontainer/apparmor.conf
 PROFILE_NAME=o3s-cage
 INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
-LOADED_PROFILES=/sys/kernel/security/apparmor/policy/profiles
 
 # Read the policy this host's kernel lays out, where every load names the profile afresh
 profile_is_loaded() {
-  compgen -G "$LOADED_PROFILES/$PROFILE_NAME.*" > /dev/null
+  local securityfs
+  securityfs=$(awk '$3 == "securityfs" { print $2; exit }' /proc/mounts)
+  compgen -G "$securityfs/apparmor/policy/profiles/$PROFILE_NAME.*" > /dev/null
 }
 
 # Seed each editable config file from its template if missing
