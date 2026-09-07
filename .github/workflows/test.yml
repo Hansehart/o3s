@@ -1,0 +1,35 @@
+name: Test the stack
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    # pin the release, so the kernel under the suite keeps enforcing AppArmor
+    runs-on: ubuntu-24.04
+    steps:
+      # check out the repo so the suite drives this branch's lifecycle and compose files
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # require the confinement the suite reads back
+      - name: Require AppArmor
+        run: aa-enabled
+
+      # install the CLI this host's editor raises the stack with
+      - name: Install the dev container CLI
+        run: npm install -g @devcontainers/cli
+
+      # hold the test dependencies apart from the interpreter this host manages
+      - name: Install the test dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet pytest pytest-testinfra
+
+      # run the suite against the stack this host raises
+      - name: Run the suite
+        run: .venv/bin/pytest test -v
