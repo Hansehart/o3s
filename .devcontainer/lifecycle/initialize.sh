@@ -23,9 +23,11 @@ INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
 
 # Read the policy this host's kernel lays out, where every load names the profile afresh
 profile_is_loaded() {
-  local securityfs
-  securityfs=$(awk '$3 == "securityfs" { print $2; exit }' /proc/mounts)
-  compgen -G "$securityfs/apparmor/policy/profiles/$PROFILE_NAME.*" > /dev/null
+  local mnt
+  while read -r mnt; do
+    compgen -G "$mnt/apparmor/policy/profiles/$PROFILE_NAME.*" > /dev/null && return 0
+  done < <(awk '$3 == "securityfs" { print $2 }' /proc/mounts)
+  return 1
 }
 
 # Seed each editable config file from its template if missing
