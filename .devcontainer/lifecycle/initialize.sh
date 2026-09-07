@@ -18,7 +18,19 @@ log() { echo "[o3s] INFO: $*"; }
 ENV_FILE=.devcontainer/.env
 CONFIG_FILE=.devcontainer/config.toml
 PROFILE_FILE=.devcontainer/apparmor.conf
-INSTALLED_PROFILE=/etc/apparmor.d/o3s-cage
+PROFILE_NAME=o3s-cage
+INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
+LOADED_PROFILES=/sys/kernel/security/apparmor/policy/profiles
+
+profile_is_loaded() {
+  # Read the policy this host's kernel lays out, where every load names the profile afresh
+  if [ -d "$LOADED_PROFILES" ]; then
+    compgen -G "$LOADED_PROFILES/$PROFILE_NAME.*" > /dev/null
+  # Take the installed file for an answer where this host lays no policy out
+  else
+    cmp -s "$PROFILE_FILE" "$INSTALLED_PROFILE"
+  fi
+}
 
 # Seed each editable config file from its template if missing
 [ -f "$CONFIG_FILE" ]                   || cp .devcontainer/templates/config.toml "$CONFIG_FILE"
@@ -34,15 +46,15 @@ bash .devcontainer/proxy/gen-ca.sh
 # Install the cage's confinement profile where this host's kernel enforces AppArmor
 if [ -f "$PROFILE_FILE" ] && aa-enabled --quiet 2>/dev/null; then
   # Leave the kernel alone where it already holds the profile this host installed
-  if cmp -s "$PROFILE_FILE" "$INSTALLED_PROFILE"; then
+  if profile_is_loaded && cmp -s "$PROFILE_FILE" "$INSTALLED_PROFILE"; then
     log "the cage's confinement profile is loaded"
   # Load it, then leave it where this host loads it at every boot, asking for privilege once
   elif sudo sh -c 'apparmor_parser -r -T "$1" && install -m 644 "$1" "$2"' \
         _ "$PROFILE_FILE" "$INSTALLED_PROFILE"; then
-    log "installed the cage's confinement profile"
+    log "loaded the cage's confinement profile"
   # Leave the step to whoever holds the privilege this host withheld
   else
-    log "install this host's confinement profile: sudo apparmor_parser -r $PROFILE_FILE && sudo install -m 644 $PROFILE_FILE $INSTALLED_PROFILE"
+    log "load this host's confinement profile: sudo apparmor_parser -r $PROFILE_FILE && sudo install -m 644 $PROFILE_FILE $INSTALLED_PROFILE"
   fi
 fi
 
