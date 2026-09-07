@@ -24,9 +24,11 @@ INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
 # Read the policy this host's kernel lays out, where every load names the profile afresh
 profile_is_loaded() {
   local mnt
+  # Walk each mount this host reports
   while read -r mnt; do
-    # Answer from whichever mount carries the policy, as not all of them do
+    # Answer from the mount that carries the policy
     compgen -G "$mnt/apparmor/policy/profiles/$PROFILE_NAME.*" > /dev/null && return 0
+  # Draw them from the mount table the kernel keeps
   done < <(awk '$3 == "securityfs" { print $2 }' /proc/mounts)
   return 1
 }
