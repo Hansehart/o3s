@@ -22,14 +22,9 @@ PROFILE_NAME=o3s-cage
 INSTALLED_PROFILE=/etc/apparmor.d/$PROFILE_NAME
 LOADED_PROFILES=/sys/kernel/security/apparmor/policy/profiles
 
+# Read the policy this host's kernel lays out, where every load names the profile afresh
 profile_is_loaded() {
-  # Read the policy this host's kernel lays out, where every load names the profile afresh
-  if [ -d "$LOADED_PROFILES" ]; then
-    compgen -G "$LOADED_PROFILES/$PROFILE_NAME.*" > /dev/null
-  # Take the installed file for an answer where this host lays no policy out
-  else
-    cmp -s "$PROFILE_FILE" "$INSTALLED_PROFILE"
-  fi
+  compgen -G "$LOADED_PROFILES/$PROFILE_NAME.*" > /dev/null
 }
 
 # Seed each editable config file from its template if missing
