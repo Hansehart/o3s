@@ -1,0 +1,80 @@
+{
+    "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
+        "label": "Claude Code CLI",
+        "description": "Installs the Claude Code CLI on a selectable channel.",
+        "options": {
+            "disableNonessentialTraffic": true,
+            "settingsJson": "{\\\"env\\\":{\\\"IS_DEMO\\\":\\\"1\\\"},\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}",
+            "stateDir": "/home/ubuntu/features/claude",
+            "version": "latest"
+        }
+    },
+    "ghcr.io/hansehart/devcontainer-features/codex:1": {
+        "stateDir": "/home/ubuntu/features/codex",
+        "version": "latest"
+    },
+    "ghcr.io/hansehart/devcontainer-features/docker-in-docker:2": {
+        "label": "Docker in Docker",
+        "description": "Installs a Docker engine for building and running containers inside the dev container.",
+        "options": {
+            "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}",
+            "version": "latest"
+        }
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+        "label": "GitHub CLI",
+        "description": "Installs the GitHub CLI (gh).",
+        "options": {
+            "version": "latest"
+        }
+    },
+    "ghcr.io/hansehart/devcontainer-features/headless-chrome:1": {
+        "label": "Headless Chrome",
+        "description": "Installs chrome-headless-shell (Chrome for Testing) on a selectable channel, with the runtime shared libraries it needs.",
+        "options": {
+            "version": "latest"
+        }
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+        "label": "kubectl, Helm & Minikube",
+        "description": "Installs kubectl, Helm, and Minikube for working with Kubernetes.",
+        "options": {
+            "helm": "latest",
+            "minikube": "latest",
+            "version": "latest"
+        }
+    },
+    "ghcr.io/hansehart/devcontainer-features/latex:1": {
+        "label": "LaTeX (TeX Live)",
+        "description": "Installs TeX Live from a pinned tlnet-final snapshot (selectable scheme) and puts the binaries on PATH.",
+        "options": {
+            "scheme": "scheme-basic",
+            "stateDir": "/home/ubuntu/features/latex",
+            "version": "2025"
+        }
+    },
+    "ghcr.io/devcontainers/features/node:2": {
+        "label": "Node.js (via nvm), yarn and pnpm",
+        "description": "Installs Node.js, nvm, yarn, pnpm, and needed dependencies.",
+        "options": {
+            "version": "lts"
+        }
+    },
+    "ghcr.io/hansehart/devcontainer-features/uv:1": {
+        "label": "uv (Python)",
+        "description": "Installs the uv Python package and interpreter manager as a single static binary.",
+        "options": {
+            "python": "3.13",
+            "stateDir": "/home/ubuntu/features/uv",
+            "version": "latest"
+        }
+    },
+    "ghcr.io/hansehart/devcontainer-features/sops:1": {
+        "label": "sops",
+        "description": "Installs the sops secret editor as a single static binary, verified against its published checksums.",
+        "options": {
+            "stateDir": "/home/ubuntu/features/sops",
+            "version": "latest"
+        }
+    }
+}
