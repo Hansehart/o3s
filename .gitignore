@@ -4,3 +4,6 @@
 .devcontainer/o3s.code-workspace
 *.crt
 *.key
+.venv/
+.pytest_cache/
+__pycache__/
