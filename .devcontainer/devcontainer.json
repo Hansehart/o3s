@@ -19,13 +19,13 @@
     "service": "cage",
     // Additional software layered onto the o3s image.
     "features": {
-        "ghcr.io/hansehart/devcontainer-features/claude-code:1": {
+        "ghcr.io/hansehart/devcontainer-features/claude-code:2": {
             "disableNonessentialTraffic": true,
-            "settingsJson": "{\\\"env\\\":{\\\"IS_DEMO\\\":\\\"1\\\"},\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}",
+            "settingsJson": "{\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}",
             "stateDir": "/home/ubuntu/features/claude",
             "version": "latest"
         },
-        "ghcr.io/hansehart/devcontainer-features/codex:1": {
+        "ghcr.io/hansehart/devcontainer-features/codex:2": {
             "stateDir": "/home/ubuntu/features/codex",
             "version": "latest"
         },
@@ -44,21 +44,25 @@
         //     "minikube": "latest",
         //     "version": "latest" // kubectl
         // },
-        // "ghcr.io/hansehart/devcontainer-features/latex:1": {
+        // "ghcr.io/hansehart/devcontainer-features/latex:2": {
         //     "scheme": "scheme-basic",
         //     "stateDir": "/home/ubuntu/features/latex",
         //     "version": "2025"
         // },
-        // "ghcr.io/hansehart/devcontainer-features/node:1": {
+        // "ghcr.io/hansehart/devcontainer-features/node:2": {
         //     "stateDir": "/home/ubuntu/features/node",
         //     "version": "lts"
         // },
-        // "ghcr.io/hansehart/devcontainer-features/uv:1": {
+        // "ghcr.io/hansehart/devcontainer-features/tea:1": {
+        //     "stateDir": "/home/ubuntu/features/tea",
+        //     "version": "latest"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/uv:2": {
         //     "python": "3.13",
         //     "stateDir": "/home/ubuntu/features/uv",
         //     "version": "latest"
         // },
-        // "ghcr.io/hansehart/devcontainer-features/sops:1": {
+        // "ghcr.io/hansehart/devcontainer-features/sops:2": {
         //     "stateDir": "/home/ubuntu/features/sops",
         //     "version": "latest"
         }
