@@ -180,6 +180,8 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.enable_ip_masquerade: "false"
+      # The bridge holds no IPv4 address, so the gateway is the cage's only route out
+      com.docker.network.bridge.inhibit_ipv4: "true"
     ipam:
       config:
         - subnet: *cage_subnet
