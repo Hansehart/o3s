@@ -3,7 +3,8 @@
   "extends": [
     "config:recommended",
     "abandonments:recommended",
-    ":configMigration"
+    ":configMigration",
+    "helpers:pinGitHubActionDigestsToSemver"
   ],
   "timezone": "Europe/Berlin",
   "labels": ["renovate"],
