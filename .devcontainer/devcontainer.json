@@ -17,23 +17,23 @@
     "dockerComposeFile": "compose.yaml",
     // Which container from compose should be entered
     "service": "cage",
-    // Additional software layered onto the o3s image.
+    // Additional software layered onto the o3s image; uncomment the features a project needs.
     "features": {
-        "ghcr.io/hansehart/devcontainer-features/claude-code:2": {
-            "version": "latest",
-            "stateDir": "/home/ubuntu/features/claude",
-
-            "disableNonessentialTraffic": true,
-            "settingsJson": "{\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}"
-        },
-        "ghcr.io/hansehart/devcontainer-features/codex:2": {
-            "version": "latest",
-            "stateDir": "/home/ubuntu/features/codex"
-        },
-        "ghcr.io/hansehart/devcontainer-features/docker-in-docker:2": {
-            "version": "latest",
-
-            "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}"
+        // "ghcr.io/hansehart/devcontainer-features/claude-code:2": {
+        //     "version": "latest",
+        //     "stateDir": "/home/ubuntu/features/claude",
+        //
+        //     "disableNonessentialTraffic": true,
+        //     "settingsJson": "{\\\"attribution\\\":{\\\"commit\\\":\\\"\\\",\\\"pr\\\":\\\"\\\"}}"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/codex:2": {
+        //     "version": "latest",
+        //     "stateDir": "/home/ubuntu/features/codex"
+        // },
+        // "ghcr.io/hansehart/devcontainer-features/docker-in-docker:3": {
+        //     "version": "latest",
+        //
+        //     "daemonJson": "{\\\"dns\\\":[\\\"10.10.0.2\\\"]}"
         // },
         // "ghcr.io/devcontainers/features/github-cli:1": {
         //     "version": "latest"
@@ -47,7 +47,7 @@
         //     "helm": "latest",
         //     "minikube": "latest"
         // },
-        // "ghcr.io/hansehart/devcontainer-features/latex:2": {
+        // "ghcr.io/hansehart/devcontainer-features/latex:3": {
         //     "version": "2025",
         //     "stateDir": "/home/ubuntu/features/latex",
         //
@@ -72,8 +72,12 @@
         //     "stateDir": "/home/ubuntu/features/uv",
         //
         //     "python": "3.13"
-        }
+        // }
     },
+    // Install the largest features first, so changes to the others keep their layers cached.
+    // "overrideFeatureInstallOrder": [
+    //     "ghcr.io/hansehart/devcontainer-features/latex"
+    // ],
     // Non-root user VS Code connects as
     "remoteUser": "ubuntu",
     // Which folder is the default inside the dev container

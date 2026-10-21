@@ -84,8 +84,9 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
    ```bash
    git clone https://github.com/Hansehart/o3s.git
    ```
-2. Open it in VS Code and run `Dev Containers: Reopen in Container`.
-3. Open `.devcontainer/o3s.code-workspace` and keep your projects in `~/projects`.
+2. Uncomment the features you need in `.devcontainer/devcontainer.json`, such as Claude Code, Codex or Docker.
+3. Open it in VS Code and run `Dev Containers: Reopen in Container`.
+4. Open `.devcontainer/o3s.code-workspace` and keep your projects in `~/projects`.
 
 > [!TIP]
 > Make it yours in the [Customization guide](https://github.com/Hansehart/o3s/wiki/Customization).
