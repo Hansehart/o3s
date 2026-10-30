@@ -24,8 +24,11 @@ We do software development for a living, and o3s is our answer to keeping pace: 
 > [!TIP]
 > Is o3s worth your limited time? Decide on your security model:
 >
-> - ❌ **No** if your agent is actively malicious and tries to escape: a VM boundary is meaningfully stronger than containers.
-> - ✅ **Yes** if your long-leash-but-not-weaponized agent needs deterministic boundaries: the architecture delivers security coupled with convenience.
+> **My agent is actively malicious and tries to escape**\
+> ❌ No, a VM boundary is stronger than containers.
+>
+> **My long-leash-but-not-weaponized agent needs deterministic boundaries**\
+> ✅ Yes, the architecture delivers security coupled with convenience.
 
 ## Security
 
