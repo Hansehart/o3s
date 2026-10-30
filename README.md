@@ -106,7 +106,7 @@ Others working on the same problem, each worth your time:
 - **[Anthropic's devcontainer][ref]**: one container, a short hardcoded allowlist, and the firewall applied from inside it.
 - **[Docker sbx][sbx]**: one KVM microVM, its own kernel, and a userspace network stack.
 - **[NVIDIA OpenShell][osh]**: one sandbox per agent, Landlock and seccomp, and formally verified policy changes.
-- **[OpenAI's devcontainer][cdx]**: one container, and a hardened profile that nests bubblewrap and denies IPv6.
+- **[OpenAI's devcontainer][cdx]**: one container, and a hardened profile that nests bubblewrap.
 
 [ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
 [sbx]: https://github.com/docker/sbx-releases
