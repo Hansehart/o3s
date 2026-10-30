@@ -19,6 +19,8 @@ If you are not willing to trade security for productivity, o3s is a match. Let a
 
 [Anthropic][ref] and [OpenAI][cdx] both ship a reference devcontainer, deliberately minimal, and both tell you to bring your own network controls. o3s starts where they stop: productivity on steroids, and deterministic enforcement (harness) to get there.
 
+We do software development for a living, and o3s is our answer to keeping pace: trusted environments, several projects at once, and several features inside each. AI will not be the death of good engineering. It is the golden era of agentic software engineers. This is how we build with it and still stand behind every line that ships.
+
 > [!TIP]
 > Is o3s worth your limited time? Decide on your security model:
 
@@ -26,8 +28,6 @@ If you are not willing to trade security for productivity, o3s is a match. Let a
 | --- | --- |
 | My agent is actively malicious and tries to escape | ❌ No - a VM boundary is meaningfully stronger than containers |
 | My long-leash-but-not-weaponized agent needs deterministic boundaries | ✅ Yes - the architecture delivers security coupled with convenience |
-
-We do software development for a living, and o3s is our answer to keeping pace: trusted environments, several projects at once, and several features inside each. AI will not be the death of good engineering. It is the golden era of agentic software engineers. This is how we build with it and still stand behind every line that ships.
 
 ## Security
 
