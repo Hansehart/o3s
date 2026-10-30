@@ -17,9 +17,18 @@
 
 If you are not willing to trade security for productivity, o3s is a match. Let an agent generate every line of code, and review every line by hand or none at all. Either way, which hosts your agents reach and which secrets they can read stays yours to decide.
 
-[Anthropic][ref] and [OpenAI][cdx] both ship a reference devcontainer, deliberately minimal, and both tell you to bring your own network controls. o3s starts where they stop: productivity on steroids, and deterministic enforcement to get there.
+[Anthropic][ref] and [OpenAI][cdx] both ship a reference devcontainer, deliberately minimal, and both tell you to bring your own network controls. o3s starts where they stop: productivity on steroids, and deterministic enforcement (harness) to get there.
 
-We do software development for a living, and o3s is our answer to keeping pace: several projects at once, and several features inside each. AI will not be the death of good engineering. This is how we build with it and still stand behind every line that ships.
+We do software development for a living, and o3s is our answer to keeping pace: trusted environments, several projects at once, and several features inside each. AI will not be the death of good engineering. It is the golden era of agentic software engineers. This is how we build with it and still stand behind every line that ships.
+
+> [!TIP]
+> Is o3s worth your limited time? Decide on your security model:
+>
+> **My agent is actively malicious and tries to escape**\
+> ❌ No, a VM boundary is stronger than containers.
+>
+> **My long-leash-but-not-weaponized agent needs deterministic boundaries**\
+> ✅ Yes, the architecture delivers security coupled with convenience.
 
 ## Security
 
@@ -97,13 +106,15 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 
 Others working on the same problem, each worth your time:
 
-- **[Anthropic's devcontainer][ref]** is the minimal reference: one container, a short hardcoded allowlist, and the firewall applied from inside it.
-- **[OpenAI's devcontainer][cdx]** ships two profiles, the hardened one nesting Codex's own bubblewrap sandbox and denying IPv6 outright.
-- **[Docker sbx][sbx]** is not a container at all: a KVM microVM with its own kernel and a userspace network stack.
+- **[Anthropic's devcontainer][ref]**: one container, a short hardcoded allowlist, and the firewall applied from inside it.
+- **[Docker sbx][sbx]**: one KVM microVM, its own kernel, and a userspace network stack.
+- **[NVIDIA OpenShell][osh]**: one container or microVM per agent, Landlock and seccomp, and formally verified policy changes.
+- **[OpenAI's devcontainer][cdx]**: one container, and a hardened profile that nests bubblewrap.
 
 [ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
-[cdx]: https://github.com/openai/codex/tree/main/.devcontainer
 [sbx]: https://github.com/docker/sbx-releases
+[osh]: https://github.com/NVIDIA/OpenShell
+[cdx]: https://github.com/openai/codex/tree/main/.devcontainer
 
 Something here you would do differently? Open an issue, send a pull request, or just get in touch. And if one of the others fits you better, take it, as long as you keep both your security and your productivity. You are always welcome back.
 
