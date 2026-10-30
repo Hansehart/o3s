@@ -103,10 +103,10 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 
 Others working on the same problem, each worth your time:
 
-- **[Anthropic's devcontainer][ref]** is the minimal reference: one container, a short hardcoded allowlist, and the firewall applied from inside it.
-- **[Docker sbx][sbx]** is not a container at all: a KVM microVM with its own kernel and a userspace network stack.
-- **[NVIDIA OpenShell][osh]** confines each agent with Landlock and seccomp, sends every connection through a supervisor that checks it per program, and formally verifies policy changes before they apply.
-- **[OpenAI's devcontainer][cdx]** ships two profiles, the hardened one nesting Codex's own bubblewrap sandbox and denying IPv6 outright.
+- **[Anthropic's devcontainer][ref]** is the minimal reference, with a short hardcoded allowlist.
+- **[Docker sbx][sbx]** is not a container at all, but a KVM microVM with its own kernel.
+- **[NVIDIA OpenShell][osh]** confines agents with Landlock and seccomp, and formally verifies policy changes.
+- **[OpenAI's devcontainer][cdx]** nests Codex's own bubblewrap sandbox in its hardened profile.
 
 [ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
 [sbx]: https://github.com/docker/sbx-releases
