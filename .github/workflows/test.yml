@@ -10,8 +10,13 @@ permissions:
 
 jobs:
   ubuntu:
-    # pin the release, so the kernel under the suite keeps enforcing AppArmor
-    runs-on: ubuntu-24.04
+    # run the suite on every architecture the images ship for
+    strategy:
+      fail-fast: false
+      matrix:
+        # pin the release, so the kernel under the suite keeps enforcing AppArmor
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       # check out the repo so the suite drives this branch's lifecycle and compose files
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
