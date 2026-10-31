@@ -106,7 +106,7 @@ Something here you would do differently? Open an issue, send a pull request, or 
 3. Open `.devcontainer/o3s.code-workspace` and keep your projects in `~/projects`.
 
 > [!TIP]
-> Make it yours in the [Customization guide](https://github.com/Hansehart/o3s/wiki/Customization).
+> Make it yours in the [customization guide](https://github.com/Hansehart/o3s/wiki/Customization).
 
 > [!WARNING]
 > Only `~/features`, `~/o3s`, and `~/projects` survive a rebuild. Keep your work in `~/projects`.
