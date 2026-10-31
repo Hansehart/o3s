@@ -14,7 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # name each release, so the suite runs on exactly the hosts we support
         runner:
           - ubuntu-22.04
           - ubuntu-22.04-arm
