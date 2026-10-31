@@ -87,7 +87,7 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 > **My long-leash-but-not-weaponized agent needs deterministic boundaries**\
 > ✅ Yes, the architecture delivers security coupled with convenience.
 
-Others working on the same problem are compared in the [comparison](https://github.com/Hansehart/o3s/wiki/Comparison).
+See the [comparison](https://github.com/Hansehart/o3s/wiki/Comparison) for others working on the same problem.
 
 [ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
 [cdx]: https://github.com/openai/codex/tree/main/.devcontainer
