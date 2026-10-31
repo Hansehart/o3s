@@ -78,7 +78,7 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 
 ## References
 
-Others working on the same problem, each worth your time, are compared in the [wiki](https://github.com/Hansehart/o3s/wiki/Comparison).
+Others working on the same problem are compared in the [wiki](https://github.com/Hansehart/o3s/wiki/Comparison).
 
 > [!TIP]
 > Is o3s worth your limited time? Decide on your security model:
