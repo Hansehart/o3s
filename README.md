@@ -21,15 +21,6 @@ If you are not willing to trade security for productivity, o3s is a match. Let a
 
 We do software development for a living, and o3s is our answer to keeping pace: trusted environments, several projects at once, and several features inside each. AI will not be the death of good engineering. It is the golden era of agentic software engineers. This is how we build with it and still stand behind every line that ships.
 
-> [!TIP]
-> Is o3s worth your limited time? Decide on your security model:
->
-> **My agent is actively malicious and tries to escape**\
-> ❌ No, a VM boundary is stronger than containers.
->
-> **My long-leash-but-not-weaponized agent needs deterministic boundaries**\
-> ✅ Yes, the architecture delivers security coupled with convenience.
-
 ## Security
 
 You write the whole policy in one file, `config.toml`, one table per host:
@@ -85,6 +76,24 @@ Run whatever agent you like, several at once, each on its own branch. They work 
 
 Rootless Docker and minikube can run inside the sandbox, so an agent can stand up your whole stack, break it, and stand it up again without touching anything real. Two things have to hold: the infrastructure has to behave like production, and the loop from failure to next attempt has to be short.
 
+## References
+
+Others working on the same problem, each worth your time, are compared in the [wiki](https://github.com/Hansehart/o3s/wiki/Comparison).
+
+> [!TIP]
+> Is o3s worth your limited time? Decide on your security model:
+>
+> **My agent is actively malicious and tries to escape**\
+> ❌ No, a VM boundary is stronger than containers.
+>
+> **My long-leash-but-not-weaponized agent needs deterministic boundaries**\
+> ✅ Yes, the architecture delivers security coupled with convenience.
+
+[ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
+[cdx]: https://github.com/openai/codex/tree/main/.devcontainer
+
+Something here you would do differently? Open an issue, send a pull request, or just get in touch. And if one of the others fits you better, take it, as long as you keep both your security and your productivity. You are always welcome back.
+
 ## Getting started
 
 **Prerequisites:** [Docker](https://docs.docker.com/engine/install/), [VS Code](https://code.visualstudio.com/download), and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
@@ -101,15 +110,6 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 
 > [!WARNING]
 > Only `~/features`, `~/o3s`, and `~/projects` survive a rebuild. Keep your work in `~/projects`.
-
-## References
-
-Others working on the same problem, each worth your time, are compared in the [wiki](https://github.com/Hansehart/o3s/wiki/Comparison).
-
-[ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
-[cdx]: https://github.com/openai/codex/tree/main/.devcontainer
-
-Something here you would do differently? Open an issue, send a pull request, or just get in touch. And if one of the others fits you better, take it, as long as you keep both your security and your productivity. You are always welcome back.
 
 ## What the name means
 
