@@ -17,7 +17,7 @@
 
 If you are not willing to trade security for productivity, o3s is a match. Let an agent generate every line of code, and review every line by hand or none at all. Either way, which hosts your agents reach and which secrets they can read stays yours to decide.
 
-[Anthropic][ref] ships a reference devcontainer, deliberately minimal, and tells you to bring your own network controls. o3s starts where they stop: productivity on steroids, and deterministic enforcement (harness) to get there.
+[Anthropic][ref] and [OpenAI][cdx] both ship a reference devcontainer, deliberately minimal, and both tell you to bring your own network controls. o3s starts where they stop: productivity on steroids, and deterministic enforcement (harness) to get there.
 
 We do software development for a living, and o3s is our answer to keeping pace: trusted environments, several projects at once, and several features inside each. AI will not be the death of good engineering. It is the golden era of agentic software engineers. This is how we build with it and still stand behind every line that ships.
 
@@ -107,6 +107,7 @@ Rootless Docker and minikube can run inside the sandbox, so an agent can stand u
 Others working on the same problem, each worth your time, are compared in the [wiki](https://github.com/Hansehart/o3s/wiki/Comparison).
 
 [ref]: https://github.com/anthropics/claude-code/tree/main/.devcontainer
+[cdx]: https://github.com/openai/codex/tree/main/.devcontainer
 
 Something here you would do differently? Open an issue, send a pull request, or just get in touch. And if one of the others fits you better, take it, as long as you keep both your security and your productivity. You are always welcome back.
 
