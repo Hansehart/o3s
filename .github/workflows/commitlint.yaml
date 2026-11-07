@@ -1,4 +1,4 @@
-name: Lint commit messages
+name: Lint commits
 on: pull_request
 
 permissions:
