@@ -1,4 +1,4 @@
-name: Publish devcontainer images
+name: Publish release
 on:
   push:
     tags:

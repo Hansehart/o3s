@@ -1,4 +1,4 @@
-name: Test the stack
+name: Test stack
 on:
   pull_request:
   push:
