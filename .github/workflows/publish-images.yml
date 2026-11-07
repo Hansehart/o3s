@@ -3,12 +3,6 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
-  workflow_call:
-    inputs:
-      tag:
-        description: Release tag to build and publish
-        required: true
-        type: string
   workflow_dispatch:
 
 jobs:
@@ -28,8 +22,6 @@ jobs:
     steps:
       # check out the repo so the build has the Dockerfiles and gateway scripts
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.tag }}
 
       # emulate arm64 so buildx can build images for Apple Silicon hosts
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
@@ -50,9 +42,9 @@ jobs:
         with:
           images: ghcr.io/hansehart/${{ matrix.name }}
           tags: |
-            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}},value=${{ inputs.tag || github.ref_name }},enable=${{ !startsWith(inputs.tag || github.ref_name, '0.') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/0.') }}
             type=sha
 
       # build each image and push it to GHCR with SBOM and provenance
