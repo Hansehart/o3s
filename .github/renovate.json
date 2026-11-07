@@ -7,7 +7,7 @@
     "helpers:pinGitHubActionDigestsToSemver"
   ],
   "timezone": "Europe/Berlin",
-  "labels": ["renovate"],
+  "labels": ["dependencies"],
   "semanticCommits": "enabled",
   "semanticCommitScope": "deps",
   "pinDigests": true,
